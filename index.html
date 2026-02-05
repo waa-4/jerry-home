@@ -224,19 +224,22 @@ drawParticles();
   const container = document.getElementById("container");
   const plugins = (window.JERRY_PLUGINS || []);
 
-  // Add a little divider card if plugins exist (optional)
-  if (plugins.length > 0) {
-    const divider = document.createElement("div");
-    divider.className = "siteCard";
-    divider.style.opacity = "0.7";
-    divider.style.cursor = "default";
-    divider.onclick = null;
-    divider.innerHTML = `
-      <div class="preview">🧩</div>
-      <div class="description">Plugins</div>
-    `;
-    container.appendChild(divider);
+<script>
+(async function(){
+  try {
+    const res = await fetch("./other/plugins.html", { cache: "no-store" });
+
+    if (!res.ok) throw new Error("plugins.html not found");
+
+    const html = await res.text();
+
+    document.getElementById("pluginMount").innerHTML = html;
+
+  } catch (err) {
+    console.log("Plugin load failed:", err);
   }
+})();
+</script>
 
 
 
