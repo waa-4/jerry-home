@@ -116,67 +116,71 @@ h1{
 <div id="bottomGlow"></div>
 
 <header>
-<h1>🤖 JERRY Tools</h1>
+  <h1>🤖 JERRY Tools</h1>
 </header>
 
 <div id="container">
 
-<div class="siteCard" onclick="location.href='./translator/'">
-<div class="preview">🤖</div>
-<div class="description">Translator</div>
-</div>
+  <div class="siteCard" onclick="location.href='./translator/'">
+    <div class="preview">🤖</div>
+    <div class="description">Translator</div>
+  </div>
 
-<div class="siteCard" onclick="location.href='./calculator/'">
-<div class="preview">🔢</div>
-<div class="description">Calculator</div>
-</div>
+  <div class="siteCard" onclick="location.href='./calculator/'">
+    <div class="preview">🔢</div>
+    <div class="description">Calculator</div>
+  </div>
 
-<div class="siteCard" onclick="location.href='./gravitytext/'">
-<div class="preview">🌌</div>
-<div class="description">Gravity Text</div>
-</div>
+  <div class="siteCard" onclick="location.href='./gravitytext/'">
+    <div class="preview">🌌</div>
+    <div class="description">Gravity Text</div>
+  </div>
 
-<div class="siteCard" onclick="location.href='./paintlab/'">
-<div class="preview">🎨</div>
-<div class="description">Paint Lab</div>
-</div>
+  <div class="siteCard" onclick="location.href='./paintlab/'">
+    <div class="preview">🎨</div>
+    <div class="description">Paint Lab</div>
+  </div>
+
+  <!-- Plugins will be injected here -->
+  <div id="pluginMount"></div>
 
 </div>
 
 <script>
-
 /* ===== MATRIX BACKGROUND ===== */
 const matrix=document.getElementById("matrix");
 const mCtx=matrix.getContext("2d");
 
 function resize(){
-matrix.width=innerWidth;
-matrix.height=innerHeight;
+  matrix.width=innerWidth;
+  matrix.height=innerHeight;
 }
 resize();
 addEventListener("resize",resize);
 
 const chars="01<>/=+-JERRY";
 const size=16;
-const columns=matrix.width/size;
-const drops=Array(Math.floor(columns)).fill(1);
+let drops = Array(Math.floor(innerWidth/size)).fill(1);
 
 function drawMatrix(){
-mCtx.fillStyle="rgba(0,0,0,0.08)";
-mCtx.fillRect(0,0,matrix.width,matrix.height);
+  // if width changed a lot, rebuild columns
+  const colsNow = Math.floor(matrix.width/size);
+  if (drops.length !== colsNow) drops = Array(colsNow).fill(1);
 
-mCtx.fillStyle="#00ffe1";
-mCtx.font=size+"px monospace";
+  mCtx.fillStyle="rgba(0,0,0,0.08)";
+  mCtx.fillRect(0,0,matrix.width,matrix.height);
 
-drops.forEach((y,i)=>{
-const text=chars[Math.floor(Math.random()*chars.length)];
-mCtx.fillText(text,i*size,y*size);
+  mCtx.fillStyle="#00ffe1";
+  mCtx.font=size+"px monospace";
 
-if(y*size>matrix.height&&Math.random()>0.975)drops[i]=0;
-drops[i]++;
-});
+  drops.forEach((y,i)=>{
+    const text=chars[Math.floor(Math.random()*chars.length)];
+    mCtx.fillText(text,i*size,y*size);
+
+    if(y*size>matrix.height && Math.random()>0.975) drops[i]=0;
+    drops[i]++;
+  });
 }
-
 setInterval(drawMatrix,33);
 
 
@@ -185,70 +189,54 @@ const pCanvas=document.getElementById("particles");
 const pCtx=pCanvas.getContext("2d");
 
 function resizeParticles(){
-pCanvas.width=innerWidth;
-pCanvas.height=innerHeight;
+  pCanvas.width=innerWidth;
+  pCanvas.height=innerHeight;
 }
 resizeParticles();
 addEventListener("resize",resizeParticles);
 
 const particles=[...Array(60)].map(()=>({
-x:Math.random()*innerWidth,
-y:Math.random()*innerHeight,
-r:Math.random()*2,
-vy:Math.random()*0.5+0.2
+  x:Math.random()*innerWidth,
+  y:Math.random()*innerHeight,
+  r:Math.random()*2,
+  vy:Math.random()*0.5+0.2
 }));
 
 function drawParticles(){
-pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
-pCtx.fillStyle="rgba(0,255,225,0.5)";
+  pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
+  pCtx.fillStyle="rgba(0,255,225,0.5)";
 
-particles.forEach(p=>{
-pCtx.beginPath();
-pCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
-pCtx.fill();
+  particles.forEach(p=>{
+    pCtx.beginPath();
+    pCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    pCtx.fill();
 
-p.y+=p.vy;
-if(p.y>innerHeight)p.y=0;
-});
+    p.y+=p.vy;
+    if(p.y>innerHeight) p.y=0;
+  });
 
-requestAnimationFrame(drawParticles);
+  requestAnimationFrame(drawParticles);
 }
 drawParticles();
-
 </script>
 
-<script src="./other/plugins.js"></script>
-
+<!-- ✅ PLUGIN LOADER: loads HTML snippets -->
 <script>
-(function loadPlugins(){
-  const container = document.getElementById("container");
-  const plugins = (window.JERRY_PLUGINS || []);
+(async function(){
+  try{
+    const res = await fetch("./other/plugins.html", { cache: "no-store" });
+    if(!res.ok) return; // no plugins file yet = no problem
 
-  
-  // Create a card for each plugin
-  for (const p of plugins) {
-    const card = document.createElement("div");
-    card.className = "siteCard";
-    card.onclick = () => location.href = p.href;
+    const html = await res.text();
+    const mount = document.getElementById("pluginMount");
+    if (mount) mount.innerHTML = html;
 
-    card.innerHTML = `
-      <div class="preview">${p.icon || "🧩"}</div>
-      <div class="description">${escapeHtml(p.title || "Untitled")}<br>
-        <span style="font-size:12px; opacity:0.85;">${escapeHtml(p.description || "")}</span>
-      </div>
-    `;
-
-    container.appendChild(card);
-  }
-
-  function escapeHtml(s){
-    return String(s).replace(/[&<>"']/g, c => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
-    }[c]));
+  }catch(err){
+    console.log("Plugin load failed:", err);
   }
 })();
 </script>
 
-  
 </body>
 </html>
+
