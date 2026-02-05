@@ -224,19 +224,7 @@ drawParticles();
   const container = document.getElementById("container");
   const plugins = (window.JERRY_PLUGINS || []);
 
-  // Add a little divider card if plugins exist (optional)
-  if (plugins.length > 0) {
-    const divider = document.createElement("div");
-    divider.className = "siteCard";
-    divider.style.opacity = "0.7";
-    divider.style.cursor = "default";
-    divider.onclick = null;
-    divider.innerHTML = `
-      <div class="preview">🧩</div>
-      <div class="description">Plugins</div>
-    `;
-    container.appendChild(divider);
-  }
+ 
 
   // Create a card for each plugin
   for (const p of plugins) {
