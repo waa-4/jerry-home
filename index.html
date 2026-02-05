@@ -217,5 +217,51 @@ drawParticles();
 
 </script>
 
+<script src="./other/plugins.js"></script>
+
+<script>
+(function loadPlugins(){
+  const container = document.getElementById("container");
+  const plugins = (window.JERRY_PLUGINS || []);
+
+  // Add a little divider card if plugins exist (optional)
+  if (plugins.length > 0) {
+    const divider = document.createElement("div");
+    divider.className = "siteCard";
+    divider.style.opacity = "0.7";
+    divider.style.cursor = "default";
+    divider.onclick = null;
+    divider.innerHTML = `
+      <div class="preview">🧩</div>
+      <div class="description">Plugins</div>
+    `;
+    container.appendChild(divider);
+  }
+
+  // Create a card for each plugin
+  for (const p of plugins) {
+    const card = document.createElement("div");
+    card.className = "siteCard";
+    card.onclick = () => location.href = p.href;
+
+    card.innerHTML = `
+      <div class="preview">${p.icon || "🧩"}</div>
+      <div class="description">${escapeHtml(p.title || "Untitled")}<br>
+        <span style="font-size:12px; opacity:0.85;">${escapeHtml(p.description || "")}</span>
+      </div>
+    `;
+
+    container.appendChild(card);
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+  }
+})();
+</script>
+
+  
 </body>
 </html>
