@@ -1,0 +1,137 @@
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<title data-id="th-modified">Calculator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+html,body{
+    margin:0;height:100%;background:black;color:#00ffcc;
+    font-family:monospace;overflow:hidden;
+}
+#matrix{position:fixed;inset:0;z-index:0}
+#terminal{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:92%;max-width:720px;padding:18px;
+    background:rgba(0,0,0,.85);
+    border:2px solid #00ffcc;box-shadow:0 0 30px #00ffcc;z-index:5
+}
+h1{text-align:center;text-shadow:0 0 18px #00ffff;margin:0 0 10px}
+input{
+    width:100%;padding:10px;background:black;color:#00ffcc;
+    border:1px solid #00ffcc;font-size:18px
+}
+#output{
+    margin-top:12px;padding:10px;min-height:90px;background:black;
+    border:1px solid #00ffcc;white-space:pre-wrap;
+    animation:glitch 2s infinite
+}
+#status{margin-top:8px;opacity:.6}
+@keyframes glitch{50%{text-shadow:-2px 0 red,2px 0 cyan}}
+#help{opacity:.6;font-size:12px;margin-top:6px}
+</style>
+<meta property="og:title" content="Calculator" data-id="th-modified"><meta property="og:image" content="https://tiiny.host/assets/logo-purple-bg.png" data-id="th-modified"><meta property="og:url" content="https://jerry-calculator.tiiny.site/" data-id="th-modified"><meta property="og:type" content="website" data-id="th-modified"><script defer="" data-domain="jerry-calculator.tiiny.site" src="https://analytics.tiiny.site/js/plausible.js"></script></head>
+
+<body>
+<canvas id="matrix"></canvas>
+
+<div id="terminal">
+  <h1>🧮 JERRY CALCULATOR</h1>
+  <input id="input" placeholder="Try: 3+5*4 | sqrt(16) | 2x+5=17 | x^2-9=0">
+  <div id="output">Awaiting input…</div>
+  <div id="status">JERRY is idle.</div>
+  <div id="help">
+    Supported: + − * / ( ) ^ | sqrt sin cos tan log abs | pi e
+  </div>
+</div>
+
+<script>
+/* ===== MATRIX (lightweight) ===== */
+const canvas=document.getElementById("matrix"),ctx=canvas.getContext("2d");
+function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
+addEventListener("resize",resize);resize();
+const chars="JERRY+-*/=x^()";
+let cols=Math.floor(canvas.width/18),drops=Array(cols).fill(0);
+setInterval(()=>{
+  ctx.fillStyle="rgba(0,0,0,.12)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle="#00ffcc";ctx.font="14px monospace";
+  drops.forEach((y,i)=>{
+    const t=chars[Math.random()*chars.length|0];
+    ctx.fillText(t,i*18,y*18);
+    if(y*18>canvas.height&&Math.random()>.98)drops[i]=0;
+    drops[i]++;
+  });
+},50);
+
+/* ===== MATH ENGINE (fast, no libs) ===== */
+const input=document.getElementById("input"),
+      output=document.getElementById("output"),
+      status=document.getElementById("status");
+
+input.addEventListener("keydown",e=>{if(e.key==="Enter")solve(input.value)});
+
+function normalize(expr){
+  return expr
+    .replace(/\s+/g,"")
+    .replace(/\^/g,"**")
+    .replace(/\bpi\b/gi,"Math.PI")
+    .replace(/\be\b/gi,"Math.E")
+    .replace(/\bsqrt\(/gi,"Math.sqrt(")
+    .replace(/\bsin\(/gi,"Math.sin(")
+    .replace(/\bcos\(/gi,"Math.cos(")
+    .replace(/\btan\(/gi,"Math.tan(")
+    .replace(/\blog\(/gi,"Math.log(")
+    .replace(/\babs\(/gi,"Math.abs(");
+}
+
+function solve(expr){
+  status.textContent="JERRY is computing…";
+
+  // Rickroll
+  if(expr.replace(/\s/g,"").toLowerCase()=="nevergonnagiveyouup"){
+    location.href="https://www.youtube.com/watch?v=dQw4w9WgXcQ";return;
+  }
+
+  try{
+    if(expr.includes("=")){
+      solveEquation(expr);
+    }else{
+      const v=eval(normalize(expr));
+      output.textContent="= "+v;
+    }
+  }catch{
+    output.textContent="JERRY ERROR: Invalid input.";
+  }
+  status.textContent="JERRY has finished.";
+}
+
+/* Linear + Quadratic solver */
+function solveEquation(expr){
+  let [L,R]=expr.split("=");
+  let f = `(${L})-(${R})`;
+
+  // Detect quadratic
+  if(/x\^2/i.test(expr)){
+    // ax^2+bx+c = 0 by sampling
+    const F = x => eval(normalize(f.replace(/x/gi,`(${x})`)));
+    const c = F(0);
+    const b = F(1)-c;
+    const a = F(2)-b-c;
+    const d = b*b-4*a*c;
+    if(d<0){output.textContent="No real solutions";return;}
+    const x1=(-b+Math.sqrt(d))/(2*a);
+    const x2=(-b-Math.sqrt(d))/(2*a);
+    output.textContent=`x = ${x1} , ${x2}`;
+  }else{
+    // Linear
+    const F = x => eval(normalize(f.replace(/x/gi,`(${x})`)));
+    const b = F(0);
+    const a = F(1)-b;
+    if(a===0){output.textContent="No unique solution";return;}
+    const x = -b/a;
+    output.textContent="x = "+x;
+  }
+}
+</script>
+
+
+</body></html>
