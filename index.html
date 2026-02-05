@@ -238,21 +238,7 @@ drawParticles();
     container.appendChild(divider);
   }
 
-  // Create a card for each plugin
-  for (const p of plugins) {
-    const card = document.createElement("div");
-    card.className = "siteCard";
-    card.onclick = () => location.href = p.href;
 
-    card.innerHTML = `
-      <div class="preview">${p.icon || "🧩"}</div>
-      <div class="description">${escapeHtml(p.title || "Untitled")}<br>
-        <span style="font-size:12px; opacity:0.85;">${escapeHtml(p.description || "")}</span>
-      </div>
-    `;
-
-    container.appendChild(card);
-  }
 
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c => ({
