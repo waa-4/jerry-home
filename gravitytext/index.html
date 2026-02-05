@@ -1,0 +1,727 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JERRY Gravity Lab (Online)</title>
+<style>
+  :root{ --ui:#00ffcc; --bg:#000; --glass:rgba(0,0,0,.78); }
+
+  html,body{
+    margin:0; width:100%; height:100%;
+    background:var(--bg); color:var(--ui);
+    font-family:monospace; overflow:hidden;
+    touch-action: manipulation;
+  }
+
+  canvas{
+    position:fixed; inset:0;
+    z-index:0;
+    display:block;
+    touch-action:none;
+  }
+
+  #ui{
+    position:fixed; left:8px; right:8px; top:8px;
+    background:var(--glass);
+    border:1px solid currentColor;
+    padding:8px;
+    z-index:9999;
+    display:flex; flex-wrap:wrap; gap:6px;
+    max-height:50vh; overflow:auto;
+    border-radius:10px;
+    backdrop-filter: blur(6px);
+    box-shadow:0 0 18px rgba(0,255,204,.25);
+  }
+  #ui.ui-collapsed{ max-height:52px; overflow:hidden; }
+
+  #uiHeader{
+    width:100%;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+  }
+  #brand{display:flex; flex-direction:column; gap:2px; user-select:none;}
+  #brand b{font-size:14px; letter-spacing:.5px;}
+  #brand small{opacity:.85; font-size:12px;}
+
+  input,button,select,label{ font-family:inherit; font-size:13px; color:inherit; }
+  button,input,select{
+    background:rgba(0,0,0,.85);
+    border:1px solid currentColor;
+    padding:8px;
+    border-radius:10px;
+    outline:none;
+  }
+  button{cursor:pointer; position:relative; overflow:hidden;}
+  button:active, input:active, select:active{transform:scale(.985);}
+  label{cursor:pointer;}
+
+  .row{display:flex; flex-wrap:wrap; gap:6px; width:100%;}
+  .grow{flex:2; min-width:140px;}
+  .btn{flex:1; min-width:86px;}
+  .chip{
+    display:flex; align-items:center; gap:6px;
+    padding:6px 10px; border-radius:10px;
+    border:1px solid currentColor;
+    background:rgba(0,0,0,.5);
+  }
+  .chip input{accent-color: currentColor;}
+  .sliderWrap{
+    display:flex; align-items:center; gap:8px;
+    padding:6px 10px; border-radius:10px;
+    border:1px solid currentColor; background:rgba(0,0,0,.5);
+  }
+  .sliderWrap input[type="range"]{width:140px;}
+  .sep{width:100%; height:1px; background:rgba(0,255,204,.2); margin:2px 0;}
+
+  #collapseBtn{
+    border:1px solid currentColor;
+    background:transparent;
+    color:inherit;
+    padding:6px 10px;
+    border-radius:10px;
+    cursor:pointer;
+    min-width:44px;
+  }
+
+  #toast{
+    position:fixed;
+    left:50%;
+    bottom:14px;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,.85);
+    border:1px solid currentColor;
+    padding:8px 12px;
+    border-radius:999px;
+    z-index:10000;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s, transform .2s;
+    font-size:12px;
+    box-shadow: 0 0 18px rgba(0,255,204,.18);
+    max-width:min(92vw, 520px);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  #toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+
+  #netStatus{
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid currentColor;
+    background:rgba(0,0,0,.5);
+    font-size:12px;
+    display:flex;
+    gap:8px;
+    align-items:center;
+    max-width:42vw;
+  }
+  #netText{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:34vw;
+    display:inline-block;
+  }
+  .dot{width:10px;height:10px;border-radius:50%; background:#666;}
+  .dot.ok{ background:#00ff66; box-shadow:0 0 12px rgba(0,255,102,.6); }
+  .dot.warn{ background:#ffd000; box-shadow:0 0 12px rgba(255,208,0,.6); }
+  .dot.bad{ background:#ff3366; box-shadow:0 0 12px rgba(255,51,102,.6); }
+
+  .ripple{
+    position:absolute;
+    border-radius:50%;
+    transform:scale(0);
+    pointer-events:none;
+    background:rgba(255,255,255,.35);
+    mix-blend-mode: screen;
+    animation:ripple .65s ease-out forwards;
+  }
+  @keyframes ripple{ to{ transform:scale(3.2); opacity:0; } }
+
+  @media (max-width:620px){
+    #ui{max-height:60vh;}
+    .btn{min-width:72px;}
+    .sliderWrap input[type="range"]{width:110px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <div id="uiHeader">
+    <div id="brand">
+      <b>🧪 JERRY Gravity Lab (Online)</b>
+      <small>type → spawn • delete → remove • rooms</small>
+    </div>
+    <div style="display:flex; gap:6px; align-items:center;">
+      <div id="netStatus" title="Connection status">
+        <span class="dot" id="netDot"></span>
+        <span id="netText">PRIVATE</span>
+      </div>
+      <button id="collapseBtn" title="Collapse UI">⬆️</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <input id="roomCode" class="grow" placeholder="Room Code (e.g. JERRY1)" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <button class="btn" id="createBtn">Create</button>
+    <button class="btn" id="joinBtn">Join</button>
+    <button class="btn" id="leaveBtn">Leave</button>
+  </div>
+
+  <div class="row">
+    <label class="chip"><input type="checkbox" id="privateLobby" checked=""> Private Lobby</label>
+    <label class="chip"><input type="checkbox" id="showOthers" checked=""> Show Others</label>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="row">
+    <input id="textInput" class="grow" placeholder="Type here…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <button class="btn" id="resetTextBtn">Reset Text</button>
+    <button class="btn" id="resetPosBtn">Reset Position</button>
+    <button class="btn" id="saveBtn">Save Image</button>
+  </div>
+
+  <div class="sep"></div>
+
+  <div class="row">
+    <button class="btn modeBtn" data-mode="push">Push</button>
+    <button class="btn modeBtn" data-mode="pull">Pull</button>
+    <button class="btn modeBtn" data-mode="tornado">Tornado</button>
+    <button class="btn modeBtn" data-mode="blackhole">Black Hole</button>
+    <button class="btn modeBtn" data-mode="circle">Circle</button>
+  </div>
+
+  <div class="row">
+    <label class="chip"><input type="checkbox" id="gravityToggle" checked=""> Gravity</label>
+    <label class="chip"><input type="checkbox" id="collideToggle" checked=""> Collisions</label>
+    <label class="chip"><input type="checkbox" id="tiltToggle"> Tilt</label>
+    <label class="chip"><input type="checkbox" id="glowToggle" checked=""> Glow</label>
+    <label class="chip"><input type="checkbox" id="partyToggle"> Party (text)</label>
+    <label class="chip"><input type="checkbox" id="oldPhysicsToggle"> Old Physics</label>
+  </div>
+
+  <div class="row">
+    <label class="chip">Color <input type="color" id="solidColor" value="#00ffcc" style="width:44px;height:30px;padding:0;"></label>
+    <label class="chip"><input type="checkbox" id="lessLag"> Less Lag</label>
+    <label class="sliderWrap">Max <span id="maxObjRead">80</span>
+      <input type="range" id="maxObjects" min="20" max="300" value="80" step="1">
+    </label>
+  </div>
+
+  <div class="row">
+    <label class="sliderWrap">Net FPS <span id="netFpsRead">10</span>
+      <input type="range" id="netFps" min="2" max="20" value="10" step="1">
+    </label>
+    <label class="sliderWrap">Net Max <span id="netMaxRead">140</span>
+      <input type="range" id="netMax" min="20" max="300" value="140" step="1">
+    </label>
+  </div>
+</div>
+
+<div id="toast">Ready</div>
+<canvas id="c"></canvas>
+
+<script>
+(() => {
+  const ui = document.getElementById("ui");
+  const toast = document.getElementById("toast");
+  const canvas = document.getElementById("c");
+  const ctx = canvas.getContext("2d", { alpha:false });
+
+  const textInput = document.getElementById("textInput");
+  const roomCodeEl = document.getElementById("roomCode");
+  const createBtn = document.getElementById("createBtn");
+  const joinBtn = document.getElementById("joinBtn");
+  const leaveBtn = document.getElementById("leaveBtn");
+
+  const privateLobby = document.getElementById("privateLobby");
+  const showOthers = document.getElementById("showOthers");
+
+  const resetTextBtn = document.getElementById("resetTextBtn");
+  const resetPosBtn = document.getElementById("resetPosBtn");
+  const saveBtn = document.getElementById("saveBtn");
+
+  const gravityToggle = document.getElementById("gravityToggle");
+  const collideToggle = document.getElementById("collideToggle");
+  const tiltToggle = document.getElementById("tiltToggle");
+  const glowToggle = document.getElementById("glowToggle");
+  const partyToggle = document.getElementById("partyToggle");
+  const oldPhysicsToggle = document.getElementById("oldPhysicsToggle");
+
+  const solidColor = document.getElementById("solidColor");
+  const lessLag = document.getElementById("lessLag");
+  const maxObjects = document.getElementById("maxObjects");
+  const maxObjRead = document.getElementById("maxObjRead");
+  const netFps = document.getElementById("netFps");
+  const netFpsRead = document.getElementById("netFpsRead");
+  const netMax = document.getElementById("netMax");
+  const netMaxRead = document.getElementById("netMaxRead");
+
+  const collapseBtn = document.getElementById("collapseBtn");
+  const netDot = document.getElementById("netDot");
+  const netText = document.getElementById("netText");
+
+  function resize(){ canvas.width=innerWidth; canvas.height=innerHeight; }
+  addEventListener("resize", resize); resize();
+
+  // Tap outside UI → blur inputs (exit typing)
+  document.addEventListener("pointerdown", (e) => {
+    const t = e.target;
+    if (t instanceof HTMLElement && ui.contains(t)) return;
+    if (document.activeElement === textInput) textInput.blur();
+    if (document.activeElement === roomCodeEl) roomCodeEl.blur();
+  }, true);
+
+  // Don’t let UI touches fall through to canvas
+  ["pointerdown","pointermove","pointerup","pointercancel","touchstart","touchmove"].forEach(ev=>{
+    ui.addEventListener(ev, (e)=>e.stopPropagation(), {passive:false});
+  });
+
+  // Ripple pulse
+  function ripple(e){
+    const target = e.currentTarget;
+    if(!(target instanceof HTMLElement)) return;
+    const rect = target.getBoundingClientRect();
+    const x = (e.clientX ?? rect.width/2) - rect.left;
+    const y = (e.clientY ?? rect.height/2) - rect.top;
+    const d = Math.max(rect.width, rect.height);
+    const s = document.createElement("span");
+    s.className="ripple";
+    s.style.width = s.style.height = d + "px";
+    s.style.left = (x - d/2) + "px";
+    s.style.top  = (y - d/2) + "px";
+    target.appendChild(s);
+    setTimeout(()=>s.remove(), 700);
+  }
+  document.querySelectorAll("button").forEach(btn=>btn.addEventListener("pointerdown", ripple));
+
+  // Toast
+  let toastTimer=null;
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(()=>toast.classList.remove("show"), 1400);
+  }
+
+  // Collapse UI
+  let collapsed=false;
+  collapseBtn.addEventListener("click",()=>{
+    collapsed=!collapsed;
+    ui.classList.toggle("ui-collapsed", collapsed);
+    collapseBtn.textContent = collapsed ? "⬇️" : "⬆️";
+  });
+
+  // Status
+  function setNet(state, label){
+    netDot.className = "dot " + state;
+    netText.textContent = label;
+  }
+  setNet("warn","PRIVATE");
+
+  // Settings / params
+  const params = {
+    mode:"push",
+    gravityOn:true,
+    collisions:true,
+    tiltOn:false,
+    glowOn:true,
+    party:false,
+    oldPhysics:false
+  };
+
+  function safeHex(hex){
+    hex=(hex||"").trim();
+    return /^#([0-9a-f]{6})$/i.test(hex) ? hex : "#00ffcc";
+  }
+  function getTextColor(i){
+    if(params.party) return `hsl(${(Date.now()/22 + i*10)%360},100%,60%)`;
+    return solidColor.value;
+  }
+  function updateReads(){
+    maxObjRead.textContent = (+maxObjects.value|0);
+    netFpsRead.textContent = (+netFps.value|0);
+    netMaxRead.textContent = (+netMax.value|0);
+  }
+  updateReads();
+  [maxObjects,netFps,netMax].forEach(el=>el.addEventListener("input", updateReads));
+
+  function apply(){
+    params.gravityOn = gravityToggle.checked;
+    params.collisions= collideToggle.checked;
+    params.tiltOn    = tiltToggle.checked;
+    params.glowOn    = glowToggle.checked;
+    params.party     = partyToggle.checked;
+    params.oldPhysics= oldPhysicsToggle.checked;
+
+    solidColor.value = safeHex(solidColor.value);
+    document.body.style.color = solidColor.value;
+  }
+  [gravityToggle,collideToggle,tiltToggle,glowToggle,partyToggle,oldPhysicsToggle,solidColor].forEach(el=>{
+    el.addEventListener("input", apply);
+  });
+  apply();
+
+  document.querySelectorAll(".modeBtn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      params.mode = btn.dataset.mode || "push";
+      showToast("Mode: " + params.mode.toUpperCase());
+    });
+  });
+
+  // ======= OLD-SYSTEM TEXT SPAWNER (the reliable one) =======
+  let objs = [];
+  function rand(min,max){ return min + Math.random()*(max-min); }
+
+  function safeSpawnY(){
+    const uiBottom = ui.getBoundingClientRect().bottom;
+    return Math.min(canvas.height - 30, uiBottom + 25);
+  }
+
+  function rebuildFromTextClassic(){
+    let t = textInput.value || "";
+
+    // Less lag clamp
+    const cap = lessLag.checked ? +maxObjects.value : 999999;
+    t = t.slice(0, cap);
+
+    // Trim extra objects when text deleted
+    objs.length = Math.min(objs.length, t.length);
+
+    // Add new objects when text grows
+    const top = safeSpawnY();
+    while(objs.length < t.length){
+      const i = objs.length;
+      objs.push({
+        ch: t[i],
+        x: rand(20, canvas.width-20),
+        y: rand(top, canvas.height-20),
+        vx: 0, vy: 0
+      });
+    }
+
+    // Keep characters in sync (if user edits middle)
+    for(let i=0;i<objs.length;i++){
+      objs[i].ch = t[i];
+    }
+  }
+
+  textInput.addEventListener("input", rebuildFromTextClassic);
+  lessLag.addEventListener("input", rebuildFromTextClassic);
+  maxObjects.addEventListener("input", rebuildFromTextClassic);
+
+  function resetPositions(){
+    const top = safeSpawnY();
+    for(const o of objs){
+      o.x = rand(20, canvas.width-20);
+      o.y = rand(top, canvas.height-20);
+      o.vx = o.vy = 0;
+    }
+  }
+
+  resetTextBtn.addEventListener("click",()=>{
+    textInput.value="";
+    objs = [];
+    showToast("Reset text");
+  });
+  resetPosBtn.addEventListener("click",()=>{
+    resetPositions();
+    showToast("Positions reset");
+  });
+
+  // Save Image (text + black bg only)
+  saveBtn.addEventListener("click",()=>{
+    const out=document.createElement("canvas");
+    out.width=canvas.width; out.height=canvas.height;
+    const g=out.getContext("2d");
+    g.fillStyle="#000"; g.fillRect(0,0,out.width,out.height);
+
+    for(let i=0;i<objs.length;i++){
+      const o=objs[i];
+      const col = safeHex(getTextColor(i));
+      g.font="26px monospace";
+      g.textAlign="center";
+      g.textBaseline="middle";
+
+      g.lineWidth=4;
+      g.strokeStyle="#000";
+      g.shadowBlur=0;
+      g.strokeText(o.ch, o.x, o.y);
+
+      g.fillStyle=col;
+      if(params.glowOn){
+        g.shadowColor=col;
+        g.shadowBlur=14;
+      }else g.shadowBlur=0;
+      g.fillText(o.ch, o.x, o.y);
+    }
+
+    const a=document.createElement("a");
+    a.download="jerry_gravity.png";
+    a.href=out.toDataURL("image/png");
+    a.click();
+    showToast("Saved screenshot!");
+  });
+
+  // ======= Input forces (mouse/touch, 2-finger) =======
+  const pointers = new Map();
+  let primary={x:innerWidth/2,y:innerHeight/2};
+
+  function activePoints(){
+    const pts=[...pointers.values()].filter(p=>p.down);
+    return pts.length ? pts.slice(0,2) : [primary];
+  }
+
+  canvas.addEventListener("pointerdown",(e)=>{
+    canvas.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,down:true});
+    primary={x:e.clientX,y:e.clientY};
+  });
+  canvas.addEventListener("pointermove",(e)=>{
+    const p=pointers.get(e.pointerId);
+    if(p){ p.x=e.clientX; p.y=e.clientY; p.down=true; }
+    primary={x:e.clientX,y:e.clientY};
+  });
+  canvas.addEventListener("pointerup",(e)=>pointers.delete(e.pointerId));
+  canvas.addEventListener("pointercancel",(e)=>pointers.delete(e.pointerId));
+
+  // Tilt
+  let tiltAx=0, tiltAy=0;
+  addEventListener("deviceorientation",(e)=>{
+    tiltAx=(e.gamma||0)/90;
+    tiltAy=(e.beta||0)/90;
+  });
+
+  // ======= Physics =======
+  function forces(o){
+    for(const p of activePoints()){
+      const dx=p.x-o.x, dy=p.y-o.y;
+      const dist=Math.hypot(dx,dy)+0.001;
+
+      // old vs new scale
+      let s;
+      if(params.oldPhysics){
+        const inv = 1 / Math.pow(Math.max(dist, 40), 0.6);
+        s = Math.min(1.2, inv * 22);
+      }else{
+        const rad = 180;
+        s = Math.max(0, 1 - dist/rad) * 0.9;
+      }
+
+      if(s<=0) continue;
+
+      if(params.mode==="push"){ o.vx -= (dx/dist)*s; o.vy -= (dy/dist)*s; }
+      if(params.mode==="pull"){ o.vx += (dx/dist)*s; o.vy += (dy/dist)*s; }
+      if(params.mode==="tornado"){ o.vx += (-dy)*0.0012; o.vy += (dx)*0.0012; }
+      if(params.mode==="blackhole"){ o.vx += (dx/dist)*(s*0.85); o.vy += (dy/dist)*(s*0.85); }
+      if(params.mode==="circle"){
+        const a=Math.atan2(dy,dx)+1.55;
+        o.vx += Math.cos(a)*0.08;
+        o.vy += Math.sin(a)*0.08;
+      }
+    }
+  }
+
+  function collisionsStep(){
+    if(!params.collisions) return;
+    for(let i=0;i<objs.length;i++){
+      const a=objs[i];
+      for(let j=i+1;j<objs.length;j++){
+        const b=objs[j];
+        const dx=b.x-a.x, dy=b.y-a.y;
+        const dist=Math.hypot(dx,dy)+0.001;
+        const minD=18;
+        if(dist<minD){
+          const push=(minD-dist)*0.012;
+          const nx=dx/dist, ny=dy/dist;
+          a.vx-=nx*push; a.vy-=ny*push;
+          b.vx+=nx*push; b.vy+=ny*push;
+        }
+      }
+    }
+  }
+
+  function step(o){
+    if(params.tiltOn){
+      o.vx += tiltAx*0.6;
+      o.vy += tiltAy*0.6;
+    }
+
+    forces(o);
+    if(params.gravityOn) o.vy += 0.15;
+
+    o.vx *= 0.98; o.vy *= 0.98;
+    o.x += o.vx; o.y += o.vy;
+
+    const r=14;
+    if(o.x<r){o.x=r;o.vx*=-0.9;}
+    if(o.x>canvas.width-r){o.x=canvas.width-r;o.vx*=-0.9;}
+    if(o.y<r){o.y=r;o.vy*=-0.9;}
+    if(o.y>canvas.height-r){o.y=canvas.height-r;o.vy*=-0.6;}
+  }
+
+  function drawChar(o,i,alpha=1){
+    const col = safeHex(getTextColor(i));
+    ctx.font="26px monospace";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.globalAlpha=alpha;
+
+    ctx.lineWidth=4;
+    ctx.strokeStyle="#000";
+    ctx.shadowBlur=0;
+    ctx.strokeText(o.ch, o.x, o.y);
+
+    ctx.fillStyle=col;
+    if(params.glowOn){
+      ctx.shadowColor=col;
+      ctx.shadowBlur=14;
+    }else ctx.shadowBlur=0;
+    ctx.fillText(o.ch, o.x, o.y);
+
+    ctx.globalAlpha=1;
+  }
+
+  // ======= Multiplayer (your server.js supports state/settings) =======
+  const WS_URL="wss://gravity-lab-server.onrender.com";
+  let ws=null, joinedRoom="", myId=null;
+  const others=new Map();
+
+  function connect(){
+    if(privateLobby.checked){
+      setNet("warn","PRIVATE");
+      return;
+    }
+    if(ws && (ws.readyState===0 || ws.readyState===1)) return;
+
+    setNet("warn","CONNECTING…");
+    ws=new WebSocket(WS_URL);
+
+    ws.onopen=()=>{
+      setNet("ok", joinedRoom ? ("ONLINE: "+joinedRoom) : "ONLINE");
+      if(joinedRoom) ws.send(JSON.stringify({type:"join", room: joinedRoom}));
+      showToast("Connected ✅");
+    };
+
+    ws.onmessage=(ev)=>{
+      let data; try{ data=JSON.parse(ev.data);}catch{return;}
+      if(data.type==="hello" && data.id) myId=data.id;
+
+      if(data.type==="state" && data.payload && Array.isArray(data.payload.objects)){
+        if(!showOthers.checked) return;
+        if(myId && data.from===myId) return;
+        others.set(data.from,{objects:data.payload.objects,lastSeen:Date.now()});
+      }
+
+      if(data.type==="leave" && data.from) others.delete(data.from);
+    };
+
+    ws.onclose=()=>setNet("bad","DISCONNECTED");
+    ws.onerror=()=>setNet("bad","ERROR");
+  }
+
+  function sendState(){
+    if(privateLobby.checked || !joinedRoom) return;
+    if(!ws || ws.readyState!==1) return;
+
+    const limit=Math.min(objs.length, +netMax.value||140);
+    const pack=[];
+    for(let i=0;i<limit;i++){
+      const o=objs[i];
+      pack.push({ch:o.ch,x:o.x,y:o.y,vx:o.vx,vy:o.vy});
+    }
+
+    ws.send(JSON.stringify({type:"state", payload:{objects:pack}}));
+  }
+
+  let lastSend=0;
+  function maybeSend(){
+    if(privateLobby.checked || !joinedRoom) return;
+    const now=performance.now();
+    const interval=1000/(+netFps.value||10);
+    if(now-lastSend<interval) return;
+    lastSend=now;
+    sendState();
+  }
+
+  function joinRoom(code, created=false){
+    privateLobby.checked=false;
+    joinedRoom=code;
+    connect();
+    if(ws && ws.readyState===1) ws.send(JSON.stringify({type:"join", room: code}));
+    setNet("ok","ONLINE: "+code);
+    showToast(created ? ("Created Room "+code+"!") : ("You Joined "+code+"!"));
+  }
+
+  createBtn.onclick=()=>{
+    const code=(roomCodeEl.value.trim()||Math.random().toString(36).slice(2,7)).toUpperCase();
+    roomCodeEl.value=code;
+    joinRoom(code,true);
+  };
+  joinBtn.onclick=()=>{
+    const code=roomCodeEl.value.trim().toUpperCase();
+    if(!code){ showToast("Enter a room code"); return; }
+    joinRoom(code,false);
+  };
+  leaveBtn.onclick=()=>{
+    joinedRoom="";
+    others.clear();
+    try{ ws && ws.send(JSON.stringify({type:"leave"})); }catch{}
+    try{ ws && ws.close(); }catch{}
+    ws=null;
+    privateLobby.checked=true;
+    setNet("warn","PRIVATE");
+    showToast("Left room");
+  };
+
+  privateLobby.oninput=()=>{
+    if(privateLobby.checked){
+      joinedRoom="";
+      others.clear();
+      try{ ws && ws.close(); }catch{}
+      ws=null;
+      setNet("warn","PRIVATE");
+      showToast("Private lobby");
+    }else{
+      connect();
+      setNet("ok", joinedRoom ? ("ONLINE: "+joinedRoom) : "ONLINE");
+      showToast("Online enabled — join/create");
+    }
+  };
+
+  // ======= Main loop =======
+  function loop(){
+    ctx.fillStyle="#000";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    for(const o of objs) step(o);
+    collisionsStep();
+
+    for(let i=0;i<objs.length;i++) drawChar(objs[i], i, 1);
+
+    if(showOthers.checked){
+      const now=Date.now();
+      for(const [id,s] of others.entries()){
+        if(now-s.lastSeen>15000){ others.delete(id); continue; }
+        const arr=s.objects||[];
+        for(let i=0;i<arr.length;i++) drawChar(arr[i], i, 0.72);
+      }
+    }
+
+    maybeSend();
+    requestAnimationFrame(loop);
+  }
+
+  // Start
+  showToast("Ready ✅");
+  rebuildFromTextClassic();
+  loop();
+})();
+</script>
+
+
+</body></html>
