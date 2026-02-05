@@ -1,55 +1,221 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>JERRY Tools</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🤖 JERRY Tools</title>
 
-  <link rel="stylesheet" href="./core/styles.css" />
+<style>
+body{
+  margin:0;
+  font-family:monospace;
+  background:black;
+  color:#00ffe1;
+  overflow:hidden;
+}
+
+/* MATRIX CANVAS */
+#matrix{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  z-index:-3;
+}
+
+/* FLOATING PARTICLES */
+#particles{
+  position:fixed;
+  inset:0;
+  z-index:-2;
+  pointer-events:none;
+}
+
+/* BOTTOM CYAN GLOW */
+#bottomGlow{
+  position:fixed;
+  bottom:0;
+  width:100%;
+  height:200px;
+  background:linear-gradient(to top, rgba(0,255,225,0.25), transparent);
+  z-index:-1;
+}
+
+/* HEADER */
+header{
+  text-align:center;
+  padding:20px;
+}
+h1{
+  margin:0;
+  text-shadow:0 0 20px #00ffe1;
+}
+
+/* CARD CONTAINER */
+#container{
+  display:flex;
+  gap:20px;
+  padding:20px;
+  overflow-x:auto;
+}
+
+/* CYBER CARDS */
+.siteCard{
+  flex:0 0 300px;
+  background:rgba(0,0,0,0.7);
+  border:2px solid #00ffe1;
+  border-radius:10px;
+  padding:10px;
+  cursor:pointer;
+  position:relative;
+  transition:0.3s;
+  box-shadow:0 0 10px #00ffe1;
+}
+
+.siteCard:hover{
+  transform:scale(1.05);
+  box-shadow:0 0 25px #00ffe1;
+}
+
+/* ANIMATED BORDER */
+.siteCard::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  border-radius:10px;
+  background:linear-gradient(90deg, transparent, #00ffe1, transparent);
+  animation:borderFlow 3s linear infinite;
+  z-index:-1;
+}
+
+@keyframes borderFlow{
+  from{background-position:0%;}
+  to{background-position:200%;}
+}
+
+.preview{
+  height:160px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:2em;
+}
+
+.description{
+  text-align:center;
+  font-size:0.9em;
+}
+</style>
 </head>
 
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-dot" aria-hidden="true"></div>
-      <div>
-        <div class="brand-title">JERRY</div>
-        <div class="brand-subtitle">Tool Hub</div>
-      </div>
-    </div>
 
-    <div class="topbar-actions">
-      <button class="chip" id="shuffleBtn" type="button" title="Shuffle cards">Shuffle</button>
-      <a class="chip" href="https://github.com/waa-4/jerry-home" target="_blank" rel="noreferrer">GitHub</a>
-    </div>
-  </header>
+<canvas id="matrix"></canvas>
+<canvas id="particles"></canvas>
+<div id="bottomGlow"></div>
 
-  <main class="page">
-    <section class="hero">
-      <h1 class="hero-title">Pick a tool. Build something silly. 🚀</h1>
-      <p class="hero-desc">
-        A beginner-friendly web app hub. Swipe/scroll sideways to explore.
-      </p>
-      <div class="hint" id="hintText">Tip: hold Shift + mouse wheel to scroll sideways</div>
-    </section>
+<header>
+<h1>🤖 JERRY Tools</h1>
+</header>
 
-    <section class="rail-wrap" aria-label="Tool launcher">
-      <button class="navbtn" id="prevBtn" type="button" aria-label="Scroll left">◀</button>
+<div id="container">
 
-      <div class="rail" id="toolRail" tabindex="0" aria-label="Tool cards horizontal list">
-        <!-- Cards get injected here by JS -->
-      </div>
+<div class="siteCard" onclick="location.href='./translator/'">
+<div class="preview">🤖</div>
+<div class="description">Translator</div>
+</div>
 
-      <button class="navbtn" id="nextBtn" type="button" aria-label="Scroll right">▶</button>
-    </section>
+<div class="siteCard" onclick="location.href='./calculator/'">
+<div class="preview">🔢</div>
+<div class="description">Calculator</div>
+</div>
 
-    <footer class="footer">
-      <span>Made for GitHub Pages • No frameworks • Expandable</span>
-    </footer>
-  </main>
+<div class="siteCard" onclick="location.href='./gravitytext/'">
+<div class="preview">🌌</div>
+<div class="description">Gravity Text</div>
+</div>
 
-  <script src="./core/ui.js"></script>
-  <script src="./core/app.js"></script>
+<div class="siteCard" onclick="location.href='./paintlab/'">
+<div class="preview">🎨</div>
+<div class="description">Paint Lab</div>
+</div>
+
+</div>
+
+<script>
+
+/* ===== MATRIX BACKGROUND ===== */
+const matrix=document.getElementById("matrix");
+const mCtx=matrix.getContext("2d");
+
+function resize(){
+matrix.width=innerWidth;
+matrix.height=innerHeight;
+}
+resize();
+addEventListener("resize",resize);
+
+const chars="01<>/=+-JERRY";
+const size=16;
+const columns=matrix.width/size;
+const drops=Array(Math.floor(columns)).fill(1);
+
+function drawMatrix(){
+mCtx.fillStyle="rgba(0,0,0,0.08)";
+mCtx.fillRect(0,0,matrix.width,matrix.height);
+
+mCtx.fillStyle="#00ffe1";
+mCtx.font=size+"px monospace";
+
+drops.forEach((y,i)=>{
+const text=chars[Math.floor(Math.random()*chars.length)];
+mCtx.fillText(text,i*size,y*size);
+
+if(y*size>matrix.height&&Math.random()>0.975)drops[i]=0;
+drops[i]++;
+});
+}
+
+setInterval(drawMatrix,33);
+
+
+/* ===== FLOATING PARTICLES ===== */
+const pCanvas=document.getElementById("particles");
+const pCtx=pCanvas.getContext("2d");
+
+function resizeParticles(){
+pCanvas.width=innerWidth;
+pCanvas.height=innerHeight;
+}
+resizeParticles();
+addEventListener("resize",resizeParticles);
+
+const particles=[...Array(60)].map(()=>({
+x:Math.random()*innerWidth,
+y:Math.random()*innerHeight,
+r:Math.random()*2,
+vy:Math.random()*0.5+0.2
+}));
+
+function drawParticles(){
+pCtx.clearRect(0,0,pCanvas.width,pCanvas.height);
+pCtx.fillStyle="rgba(0,255,225,0.5)";
+
+particles.forEach(p=>{
+pCtx.beginPath();
+pCtx.arc(p.x,p.y,p.r,0,Math.PI*2);
+pCtx.fill();
+
+p.y+=p.vy;
+if(p.y>innerHeight)p.y=0;
+});
+
+requestAnimationFrame(drawParticles);
+}
+drawParticles();
+
+</script>
+
 </body>
 </html>
-
