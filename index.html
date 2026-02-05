@@ -1,7 +1,129 @@
-<html>
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🤖 JERRY Tools</title>
+<style>
+body{
+  margin:0; padding:0; font-family:monospace; background:#000; color:#00ffcc;
+  overflow-x:hidden; overflow-y:hidden;
+}
+header{
+  text-align:center; padding:20px;
+}
+h1{ margin:0; font-size:2em; text-shadow:0 0 15px #0ff; }
+h2{ margin:5px 0 20px 0; font-weight:normal; color:#00ffcc; }
 
-  <h1>
-    "This is a work in progress. Soon, this will be finished!"
-  </h1>
+#container{
+  display:flex; flex-direction:row; overflow-x:auto; gap:20px; padding:20px;
+}
+.siteCard{
+  flex:0 0 300px;
+  border:2px solid #00ffcc; border-radius:10px; padding:10px; background:rgba(0,0,0,0.7);
+  cursor:pointer; transition:transform 0.2s;
+}
+.siteCard:hover{ transform:scale(1.05); }
+.preview{
+  width:100%; height:180px; background:#111; border:1px solid #00ffcc;
+  display:flex; justify-content:center; align-items:center; font-size:2em; color:#00ffcc;
+  border-radius:5px; position:relative; overflow:hidden;
+}
+.description{ margin-top:10px; font-size:0.9em; min-height:40px; text-align:center; }
 
-</html>
+/* Mobile swipe styling */
+@media(max-width:600px){
+  #container{ flex-direction:row; }
+  .siteCard{ flex:0 0 80%; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🤖 JERRY Tools</h1>
+  <h2>My list of websites I made for messing around or just for fun</h2>
+</header>
+
+<div id="container">
+  <!-- Translator -->
+  <div class="siteCard" onclick="window.location.href='./translator/'">
+    <div class="preview" id="translatorPreview">🤖</div>
+    <div class="description">A sentence scrambler in a way, just type and copy!</div>
+  </div>
+
+  <!-- Calculator -->
+  <div class="siteCard" onclick="window.location.href='./calculator/'">
+    <div class="preview" id="calculatorPreview">🔢</div>
+    <div class="description">A simple math tool with JERRY-style encoding!</div>
+  </div>
+
+  <!-- Gravity Lab -->
+  <div class="siteCard" onclick="window.location.href='./gravitytext/'">
+    <div class="preview" id="gravityPreview">🌌</div>
+    <div class="description">Type letters, watch them float and bounce with physics!</div>
+  </div>
+
+  <!-- Paint Lab -->
+  <div class="siteCard" onclick="window.location.href='./paintlab/'">
+    <div class="preview" id="paintPreview">🎨</div>
+    <div class="description">Draw, warp, and customize images freely!</div>
+  </div>
+</div>
+
+<script>
+// Lightweight horizontal swipe
+let container=document.getElementById('container');
+let isDown=false,startX,scrollLeft;
+
+container.addEventListener('mousedown', e=>{
+  isDown=true; startX=e.pageX - container.offsetLeft; scrollLeft=container.scrollLeft;
+});
+container.addEventListener('mouseleave', ()=>isDown=false);
+container.addEventListener('mouseup', ()=>isDown=false);
+container.addEventListener('mousemove', e=>{
+  if(!isDown) return;
+  e.preventDefault();
+  const x=e.pageX - startX;
+  container.scrollLeft=scrollLeft-x;
+});
+
+// Touch support
+container.addEventListener('touchstart', e=>{
+  startX=e.touches[0].pageX; scrollLeft=container.scrollLeft;
+});
+container.addEventListener('touchmove', e=>{
+  const x=e.touches[0].pageX;
+  container.scrollLeft=scrollLeft-(x-startX);
+});
+
+/* ===================== ANIMATED EMOJI PREVIEWS ===================== */
+const previews={
+  translator: document.getElementById('translatorPreview'),
+  calculator: document.getElementById('calculatorPreview'),
+  gravity: document.getElementById('gravityPreview'),
+  paint: document.getElementById('paintPreview')
+};
+
+const translatorEmojis=["🤖","🧠","💬","📝"];
+const calculatorEmojis=["🔢","➕","➖","✖️","➗"];
+const gravityEmojis=["🌌","🌠","✨","💫"];
+const paintEmojis=["🎨","🖌️","🖍️","🖼️"];
+
+// Animate previews with emoji changes
+setInterval(()=>{
+  previews.translator.textContent = translatorEmojis[Math.floor(Math.random()*translatorEmojis.length)];
+},400);
+
+setInterval(()=>{
+  previews.calculator.textContent = calculatorEmojis[Math.floor(Math.random()*calculatorEmojis.length)];
+},600);
+
+setInterval(()=>{
+  previews.gravity.textContent = gravityEmojis[Math.floor(Math.random()*gravityEmojis.length)];
+},500);
+
+setInterval(()=>{
+  previews.paint.textContent = paintEmojis[Math.floor(Math.random()*paintEmojis.length)];
+},500);
+</script>
+
+</body></html>
