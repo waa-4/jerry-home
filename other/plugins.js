@@ -4,10 +4,10 @@
 window.JERRY_PLUGINS = [
   // Example plugin (replace / remove if you want)
   {
-    id: "placeholder-tool",
-    title: "Coming Soon!",
-    icon: "🔒",
-    description: "Opening this will just open placeholder text, because this is not yet finished.",
-    href: "./placeholder/" // you can point anywhere
+    id: "pixelab-tool",
+    title: "JERRY Pixel Lab",
+    icon: "🖼",
+    description: "You can use this to draw with pixels.",
+    href: "./pixelart/" // you can point anywhere
   }
 ];
