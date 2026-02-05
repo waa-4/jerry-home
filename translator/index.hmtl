@@ -1,0 +1,200 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🤖 JERRY Translator</title>
+<style>
+html,body{
+  margin:0; padding:0; width:100%; height:100%;
+  background:black; overflow:hidden;
+  font-family:monospace; color:#00ffcc;
+}
+#matrix{position:fixed; inset:0; z-index:0;}
+.container{
+  position:relative; z-index:5;
+  width:90%; max-width:900px;
+  margin:auto; top:50%;
+  transform:translateY(-50%);
+  background:rgba(0,0,0,.85);
+  border:2px solid currentColor;
+  padding:20px;
+  box-shadow:0 0 30px currentColor;
+}
+h1{text-align:center; cursor:pointer; text-shadow:0 0 15px #00ffff;}
+textarea{width:100%; height:120px; background:black; color:inherit; border:1px solid currentColor; padding:10px;}
+.output{margin-top:10px; padding:10px; background:black; border:1px solid currentColor; min-height:80px; white-space:pre-wrap; animation:glitch 2s infinite;}
+@keyframes glitch{50%{text-shadow:-2px 0 red,2px 0 cyan;}}
+.copyBtn{margin-top:5px;width:100%;background:black;color:inherit;border:1px solid currentColor;padding:8px;cursor:pointer;}
+body.party{animation:party 12s linear infinite;}
+@keyframes party{0%{filter:hue-rotate(0deg);}100%{filter:hue-rotate(360deg);}}
+#partyEffect{
+  position:fixed; width:60px; height:60px; top:20px; right:20px;
+  z-index:20; display:none; border-radius:50%;
+  background:white; box-shadow:0 0 15px white;
+  font-size:36px; line-height:60px; text-align:center;
+}
+#settingsBtn{
+  position:fixed; top:15px; right:15px;
+  background:black; color:inherit;
+  border:2px solid currentColor;
+  padding:8px; z-index:30; cursor:pointer;
+}
+#settingsPanel{
+  position:fixed; top:60px; right:-300px;
+  width:260px; background:rgba(0,0,0,.85);
+  border:2px solid currentColor;
+  padding:15px; z-index:29;
+  transition:right .3s;
+}
+#settingsPanel.show{right:20px;}
+label{display:block;margin:8px 0;}
+</style>
+</head>
+<body>
+
+<canvas id="matrix"></canvas>
+
+<div class="container">
+<h1 id="title">🤖 JERRY TRANSLATOR</h1>
+<textarea id="input" placeholder="ENTER HUMAN TEXT…"></textarea>
+<div class="output" id="encoded"></div>
+<button class="copyBtn" onclick="copyText('encoded')">Copy JERRY</button>
+<div class="output" id="decoded"></div>
+<button class="copyBtn" onclick="copyText('decoded')">Copy Human</button>
+</div>
+
+<div id="partyEffect">🎉</div>
+
+<button id="settingsBtn">⚙️</button>
+<div id="settingsPanel">
+<label>Language
+<select id="langSelect">
+<option value="classic">CLASSIC</option>
+<option value="futuristic">FUTURISTIC</option>
+<option value="recode">RECODED</option>
+</select>
+</label>
+<label><input type="checkbox" id="partyCheckbox"> Party Mode</label>
+<label>Color
+<select id="colorSelect">
+<option value="default">Default</option>
+<option value="green">Green</option>
+<option value="blue">Blue</option>
+<option value="red">Red</option>
+<option value="yellow">Yellow</option>
+<option value="white">White</option>
+</select>
+</label>
+</div>
+
+<canvas id="chaos"></canvas>
+
+<script>
+/* MATRIX */
+const m=document.getElementById("matrix"),mx=m.getContext("2d");
+function r(){m.width=innerWidth;m.height=innerHeight;}r();onresize=r;
+let drops=Array(Math.floor(m.width/20)).fill(0);
+setInterval(()=>{
+  mx.fillStyle="rgba(0,0,0,.08)";mx.fillRect(0,0,m.width,m.height);
+  mx.fillStyle=getComputedStyle(document.body).color;
+  mx.font="16px monospace";
+  drops.forEach((y,i)=>{
+    const c="JERRY!@#$%^&*"[Math.random()*12|0];
+    mx.fillText(c,i*20,y*20);
+    if(y*20>m.height&&Math.random()>.98)drops[i]=0;
+    drops[i]++;
+  });
+},50);
+
+/* TRANSLATION */
+const maps={
+classic:{A:"!",B:"@",C:"#",D:"$",E:"%",F:"^",G:"&",H:"*",I:"(",J:")",K:"-",L:"_",M:"=",N:"+",O:"[",P:"]",Q:"{",R:"}",S:"|",T:":",U:";",V:"<",W:">",X:"?",Y:"/",Z:"~"},
+futuristic:{A:"∆",B:"∑",C:"∇",D:"≈",E:"∞",F:"µ",G:"π",H:"Ω",I:"∫",J:"≡",K:"≤",L:"≥",M:"∂",N:"∇",O:"∝",P:"∈",Q:"∉",R:"∅",S:"∴",T:"∵",U:"∃",V:"√",W:"⊕",X:"⊗",Y:"≠",Z:"±"},
+recode:{A:"✦",B:"✧",C:"★",D:"☆",E:"☀",F:"☁",G:"☂",H:"☃",I:"☄",J:"☾",K:"☽",L:"☼",M:"✪",N:"✫",O:"✬",P:"✭",Q:"✮",R:"✯",S:"✰",T:"⚡",U:"☠",V:"☢",W:"☣",X:"☤",Y:"☥",Z:"☦"}
+};
+let current=maps.classic,decode={};
+function rebuild(){decode={};for(let k in current)decode[current[k]]=k;}rebuild();
+
+const input=document.getElementById("input"), enc=encoded, dec=decoded;
+input.oninput=()=>{let t=input.value.toUpperCase(),e="",d="";for(let c of t)e+=current[c]||c;for(let c of e)d+=decode[c]||c;enc.textContent=e;dec.textContent=d;eggs(t);};
+
+langSelect.onchange=e=>{current=maps[e.target.value];rebuild();input.oninput();};
+
+/* SETTINGS */
+settingsBtn.onclick=()=>settingsPanel.classList.toggle("show");
+colorSelect.onchange=e=>{
+  const c={default:"#00ffcc",green:"#00ff00",blue:"#00ccff",red:"#ff3333",yellow:"#ffff00",white:"#fff"};
+  document.body.style.color=c[e.target.value];
+  partyCheckbox.checked=false; toggleParty(false);
+};
+
+/* PARTY */
+partyCheckbox.onchange=e=>toggleParty(e.target.checked);
+function toggleParty(on){
+  document.body.classList.toggle("party",on);
+  if(on){
+    partyEffect.textContent=Math.random()<.5?"🪩":"";
+    partyEffect.style.display="block";
+  }else partyEffect.style.display="none";
+}
+
+/* COPY TEXT (mobile friendly, silent) */
+function copyText(id){
+  const text=document.getElementById(id).textContent;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).catch(()=>fallbackCopy(text));
+  } else fallbackCopy(text);
+}
+function fallbackCopy(text){
+  const ta=document.createElement("textarea");
+  ta.value=text;
+  document.body.appendChild(ta);
+  ta.select(); ta.setSelectionRange(0,99999);
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+}
+
+/* SAFE GLITCH */
+function glitch(){document.body.style.filter="brightness(1.2)";setTimeout(()=>document.body.style.filter="",120);}
+
+/* CHAOS PHYSICS */
+const chaos=document.getElementById("chaos"),cx=chaos.getContext("2d");
+function cr(){chaos.width=innerWidth;chaos.height=innerHeight;}cr();onresize=cr;
+let mode=null,objs=[];
+function spawn(){objs.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,vx:0,vy:0,s:20,t:["▲","●","■","✦"][Math.random()*4|0]});}
+function start(m){mode=m;objs=[];for(let i=0;i<60;i++)spawn();}
+function stop(){mode=null;objs=[];}
+function loop(){
+  cx.clearRect(0,0,chaos.width,chaos.height);
+  if(mode){
+    const cxm=innerWidth/2,cym=innerHeight/2;
+    for(const o of objs){
+      if(mode=="tornado"){let a=Math.atan2(o.y-cym,o.x-cxm)+.4;o.vx=Math.cos(a)*3;o.vy=Math.sin(a)*3;}
+      if(mode=="hole"){o.vx+=(cxm-o.x)*.002;o.vy+=(cym-o.y)*.002;}
+      o.x+=o.vx;o.y+=o.vy;
+      cx.fillStyle=getComputedStyle(document.body).color;
+      cx.font=o.s+"px monospace";cx.fillText(o.t,o.x,o.y);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+loop();
+
+/* EASTER EGGS */
+let last=0;
+function eggs(t){
+  let l=t.toLowerCase();
+  if(l.includes("tornado"))start("tornado");
+  if(l.includes("blackhole"))start("hole");
+  if(l.includes("shapes"))start("shapes");
+  if(l.includes("calm"))stop();
+  if(l.includes("minigame"))alert("JERRY is watching 👁");
+  if(l.includes("nevergonnagiveyouup"))open("https://www.youtube.com/watch?v=dQw4w9WgXcQ","_blank");
+  if(Date.now()-last>180000 && Math.random()<.15){last=Date.now();glitch();}
+}
+
+title.onclick=()=>title.textContent=title.textContent.includes("JERRY")?"And so, JERRY has won.":"🤖 JERRY TRANSLATOR";
+</script>
+
+
+
+</body></html>
