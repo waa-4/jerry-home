@@ -8,6 +8,6 @@ window.JERRY_PLUGINS = [
     title: "Coming Soon!",
     icon: "🔒",
     description: "Opening this will just open placeholder text, because this is not yet finished.",
-    href: "./other/placeholder/" // you can point anywhere
+    href: "./placeholder/" // you can point anywhere
   }
 ];
