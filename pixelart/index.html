@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JERRY Pixel Lab</title>
+  <style>
+    :root{
+      --cyan:#00ffe1;
+      --bg:#000;
+      --panel: rgba(0,0,0,0.72);
+      --border: 2px solid var(--cyan);
+      --shadow: 0 0 18px rgba(0,255,225,0.45);
+      --radius: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    body{
+      margin:0;
+      background: var(--bg);
+      color: var(--cyan);
+      font-family: var(--mono);
+      overflow:hidden;
+    }
+
+    /* Matrix background */
+    #matrix{
+      position:fixed;
+      inset:0;
+      width:100%;
+      height:100%;
+      z-index:-3;
+    }
+    /* Bottom glow */
+    #bottomGlow{
+      position:fixed;
+      left:0; right:0; bottom:0;
+      height:220px;
+      background:linear-gradient(to top, rgba(0,255,225,0.24), transparent);
+      z-index:-2;
+      pointer-events:none;
+    }
+
+    header{
+      padding:16px 18px 10px;
+      text-align:center;
+    }
+    h1{
+      margin:0;
+      font-size:22px;
+      text-shadow: 0 0 22px rgba(0,255,225,0.9);
+      letter-spacing: 0.5px;
+    }
+    .sub{
+      margin:6px 0 0;
+      font-size:12px;
+      opacity:.85;
+    }
+
+    .wrap{
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:14px;
+      padding: 14px;
+      height: calc(100vh - 74px);
+      box-sizing:border-box;
+    }
+
+    .panel{
+      background: var(--panel);
+      border: var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      position:relative;
+      overflow:hidden;
+    }
+
+    /* Subtle animated border sheen */
+    .panel::before{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      background: linear-gradient(90deg, transparent, rgba(0,255,225,0.65), transparent);
+      background-size: 240% 100%;
+      animation: sheen 3.2s linear infinite;
+      z-index:-1;
+      border-radius: var(--radius);
+    }
+    @keyframes sheen{
+      from{ background-position: 0% 0; }
+      to{ background-position: 240% 0; }
+    }
+
+    .controls{
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+      justify-content:space-between;
+    }
+
+    label{
+      font-size:12px;
+      opacity:.9;
+    }
+
+    input[type="range"]{
+      width:100%;
+      accent-color: var(--cyan);
+    }
+
+    input[type="color"]{
+      width: 44px;
+      height: 34px;
+      border: var(--border);
+      background: transparent;
+      border-radius: 10px;
+      padding: 0;
+      box-shadow: 0 0 10px rgba(0,255,225,0.35);
+    }
+
+    .btn{
+      border: var(--border);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.55);
+      color: var(--cyan);
+      cursor:pointer;
+      box-shadow: 0 0 12px rgba(0,255,225,0.25);
+      font-family: var(--mono);
+      font-size: 12px;
+      transition: transform .15s, box-shadow .15s;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 0 18px rgba(0,255,225,0.5);
+    }
+
+    .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      border: 1px solid rgba(0,255,225,0.6);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      opacity: .95;
+      background: rgba(0,0,0,0.45);
+    }
+
+    .palette{
+      display:grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap:8px;
+    }
+    .swatch{
+      height: 22px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,255,225,0.35);
+      cursor:pointer;
+      box-shadow: 0 0 10px rgba(0,255,225,0.15);
+    }
+    .swatch.active{
+      outline: 2px solid var(--cyan);
+      box-shadow: 0 0 16px rgba(0,255,225,0.55);
+    }
+
+    .hint{
+      font-size: 12px;
+      opacity: .85;
+      line-height: 1.35;
+    }
+    .hint code{
+      background: rgba(0,255,225,0.08);
+      padding: 2px 6px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,255,225,0.2);
+    }
+
+    .stage{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 10px;
+    }
+
+    /* The drawing surface */
+    canvas#art{
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      border-radius: 14px;
+      border: var(--border);
+      box-shadow: 0 0 22px rgba(0,255,225,0.35);
+      background: rgba(0,0,0,0.35);
+      cursor: crosshair;
+      touch-action: none;
+    }
+
+    .footer{
+      padding: 10px 14px 14px;
+      opacity: .85;
+      font-size: 12px;
+      border-top: 1px solid rgba(0,255,225,0.25);
+    }
+
+    @media (max-width: 900px){
+      body{ overflow:auto; }
+      .wrap{ grid-template-columns: 1fr; height:auto; }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="matrix"></canvas>
+  <div id="bottomGlow"></div>
+
+  <header>
+    <h1>JERRY Pixel Lab</h1>
+    <div class="sub">Draw pixel art • export PNG • keep the cyan matrix vibe</div>
+  </header>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="controls">
+        <div class="row">
+          <div class="pill">
+            <span>Grid:</span>
+            <b id="sizeLabel">16×16</b>
+          </div>
+          <button class="btn" id="resizeBtn">Apply Size</button>
+        </div>
+
+        <label for="sizeRange">Size (8 to 100)</label>
+        <input id="sizeRange" type="range" min="8" max="100" value="16" />
+
+        <div class="row">
+          <label>Color</label>
+          <input id="colorPicker" type="color" value="#00ffe1" />
+        </div>
+
+        <div class="row">
+          <button class="btn" id="eyedropBtn">Eyedropper: OFF</button>
+          <button class="btn" id="gridBtn">Grid Lines: ON</button>
+        </div>
+
+        <div class="row">
+          <button class="btn" id="clearBtn">Clear</button>
+          <button class="btn" id="fillBtn">Fill</button>
+          <button class="btn" id="undoBtn">Undo</button>
+        </div>
+
+        <div class="row">
+          <button class="btn" id="downloadBtn">Download PNG</button>
+          <button class="btn" id="saveBtn">Save (local)</button>
+          <button class="btn" id="loadBtn">Load</button>
+        </div>
+
+        <div>
+          <label>Quick Palette</label>
+          <div class="palette" id="palette"></div>
+        </div>
+
+        <div class="hint">
+          Draw: <code>left click / drag</code><br>
+          Erase: <code>right click</code><br>
+          Mobile: <code>tap / drag</code><br>
+          Eyedropper: click a pixel to pick its color.
+        </div>
+      </div>
+
+      <div class="footer">
+        Tip: use smaller grids (8–32) for “pixel logo” style, bigger grids (64–100) for detailed sprites.
+      </div>
+    </div>
+
+    <div class="panel stage">
+      <canvas id="art" width="640" height="640"></canvas>
+    </div>
+  </div>
+
+  <script>
+    /* ===================== Matrix background ===================== */
+    const matrix = document.getElementById("matrix");
+    const mCtx = matrix.getContext("2d");
+
+    function resizeMatrix(){
+      matrix.width = innerWidth;
+      matrix.height = innerHeight;
+    }
+    resizeMatrix();
+    addEventListener("resize", resizeMatrix);
+
+    const chars = "01<>/=+-JERRY";
+    const fontSize = 16;
+    let drops = [];
+
+    function resetDrops(){
+      const cols = Math.floor(matrix.width / fontSize);
+      drops = Array(cols).fill(1);
+    }
+    resetDrops();
+    addEventListener("resize", resetDrops);
+
+    function drawMatrix(){
+      mCtx.fillStyle = "rgba(0,0,0,0.08)";
+      mCtx.fillRect(0,0,matrix.width,matrix.height);
+
+      mCtx.fillStyle = "#00ffe1";
+      mCtx.font = fontSize + "px ui-monospace, monospace";
+
+      for (let i=0; i<drops.length; i++){
+        const ch = chars[Math.floor(Math.random()*chars.length)];
+        mCtx.fillText(ch, i*fontSize, drops[i]*fontSize);
+        if (drops[i]*fontSize > matrix.height && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+    }
+    setInterval(drawMatrix, 33);
+  </script>
+
+  <script>
+    /* ===================== Pixel editor ===================== */
+    const art = document.getElementById("art");
+    const ctx = art.getContext("2d");
+
+    const sizeRange = document.getElementById("sizeRange");
+    const sizeLabel = document.getElementById("sizeLabel");
+    const resizeBtn = document.getElementById("resizeBtn");
+
+    const colorPicker = document.getElementById("colorPicker");
+    const paletteEl = document.getElementById("palette");
+
+    const clearBtn = document.getElementById("clearBtn");
+    const fillBtn = document.getElementById("fillBtn");
+    const undoBtn = document.getElementById("undoBtn");
+
+    const gridBtn = document.getElementById("gridBtn");
+    const eyedropBtn = document.getElementById("eyedropBtn");
+
+    const downloadBtn = document.getElementById("downloadBtn");
+    const saveBtn = document.getElementById("saveBtn");
+    const loadBtn = document.getElementById("loadBtn");
+
+    // Fixed render size (display), grid changes by cell size.
+    const CANVAS_PX = 640;
+    art.width = CANVAS_PX;
+    art.height = CANVAS_PX;
+
+    let N = Number(sizeRange.value);          // grid size NxN
+    let showGrid = true;
+    let eyedropper = false;
+
+    // Store pixels as hex strings or "" for transparent.
+    let pixels = [];
+    let undoStack = [];
+
+    const DEFAULT_PALETTE = [
+      "#00ffe1","#00b3ff","#0a66ff","#7c4dff",
+      "#ff4dff","#ff2d55","#ff7a00","#ffd400",
+      "#00ff66","#00ffcc","#ffffff","#b0b0b0",
+      "#404040","#111111","#000000","#00ffff"
+    ];
+
+    function initPixels(size){
+      pixels = Array.from({length: size}, () => Array(size).fill(""));
+      undoStack = [];
+      pushUndo();
+      draw();
+    }
+
+    function pushUndo(){
+      // keep last 30 states
+      const snapshot = pixels.map(row => row.slice());
+      undoStack.push(snapshot);
+      if (undoStack.length > 30) undoStack.shift();
+      undoBtn.disabled = undoStack.length <= 1;
+      undoBtn.style.opacity = undoBtn.disabled ? 0.55 : 1;
+      undoBtn.style.cursor = undoBtn.disabled ? "not-allowed" : "pointer";
+    }
+
+    function popUndo(){
+      if (undoStack.length <= 1) return;
+      undoStack.pop();
+      const last = undoStack[undoStack.length - 1];
+      pixels = last.map(r => r.slice());
+      draw();
+      undoBtn.disabled = undoStack.length <= 1;
+      undoBtn.style.opacity = undoBtn.disabled ? 0.55 : 1;
+      undoBtn.style.cursor = undoBtn.disabled ? "not-allowed" : "pointer";
+    }
+
+    function setSizeLabel(){
+      sizeLabel.textContent = `${N}×${N}`;
+    }
+    setSizeLabel();
+
+    // Palette UI
+    function buildPalette(){
+      paletteEl.innerHTML = "";
+      DEFAULT_PALETTE.forEach((hex, idx) => {
+        const d = document.createElement("div");
+        d.className = "swatch" + (hex.toLowerCase() === colorPicker.value.toLowerCase() ? " active" : "");
+        d.style.background = hex;
+        d.title = hex;
+        d.onclick = () => {
+          colorPicker.value = hex;
+          updatePaletteActive();
+        };
+        paletteEl.appendChild(d);
+      });
+    }
+    function updatePaletteActive(){
+      const swatches = [...paletteEl.querySelectorAll(".swatch")];
+      swatches.forEach(s => s.classList.remove("active"));
+      const v = colorPicker.value.toLowerCase();
+      const match = swatches.find(s => (s.style.background || "").toLowerCase() === v);
+      if (match) match.classList.add("active");
+    }
+    colorPicker.addEventListener("input", updatePaletteActive);
+    buildPalette();
+
+    // Drawing
+    function cellSizePx(){
+      return CANVAS_PX / N;
+    }
+
+    function draw(){
+      ctx.clearRect(0,0,art.width,art.height);
+
+      const cs = cellSizePx();
+
+      // draw pixels
+      for (let y=0; y<N; y++){
+        for (let x=0; x<N; x++){
+          const c = pixels[y][x];
+          if (!c) continue;
+          ctx.fillStyle = c;
+          ctx.fillRect(x*cs, y*cs, cs, cs);
+        }
+      }
+
+      // grid lines
+      if (showGrid && N <= 100){
+        ctx.save();
+        ctx.globalAlpha = 0.25;
+        ctx.strokeStyle = "#00ffe1";
+        ctx.lineWidth = 1;
+
+        for (let i=0; i<=N; i++){
+          const p = Math.round(i*cs) + 0.5; // crisp lines
+          ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, CANVAS_PX); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(CANVAS_PX, p); ctx.stroke();
+        }
+        ctx.restore();
+      }
+    }
+
+    function getCellFromEvent(evt){
+      const rect = art.getBoundingClientRect();
+      const clientX = (evt.touches ? evt.touches[0].clientX : evt.clientX);
+      const clientY = (evt.touches ? evt.touches[0].clientY : evt.clientY);
+
+      const x = (clientX - rect.left) * (art.width / rect.width);
+      const y = (clientY - rect.top) * (art.height / rect.height);
+
+      const cs = cellSizePx();
+      const cx = Math.floor(x / cs);
+      const cy = Math.floor(y / cs);
+
+      if (cx < 0 || cy < 0 || cx >= N || cy >= N) return null;
+      return {cx, cy};
+    }
+
+    let isDrawing = false;
+    let drewSomething = false;
+    let drawMode = "paint"; // paint | erase | pick
+
+    function applyAt(evt){
+      const cell = getCellFromEvent(evt);
+      if (!cell) return;
+
+      const {cx, cy} = cell;
+
+      if (eyedropper || drawMode === "pick"){
+        const c = pixels[cy][cx];
+        if (c){
+          colorPicker.value = c;
+          updatePaletteActive();
+        }
+        return;
+      }
+
+      if (drawMode === "erase"){
+        if (pixels[cy][cx] !== ""){
+          pixels[cy][cx] = "";
+          drewSomething = true;
+          draw();
+        }
+        return;
+      }
+
+      const color = colorPicker.value;
+      if (pixels[cy][cx] !== color){
+        pixels[cy][cx] = color;
+        drewSomething = true;
+        draw();
+      }
+    }
+
+    // Mouse
+    art.addEventListener("contextmenu", (e) => e.preventDefault());
+
+    art.addEventListener("mousedown", (e) => {
+      isDrawing = true;
+      drewSomething = false;
+
+      if (e.button === 2) drawMode = "erase";
+      else drawMode = eyedropper ? "pick" : "paint";
+
+      applyAt(e);
+    });
+
+    addEventListener("mousemove", (e) => {
+      if (!isDrawing) return;
+      applyAt(e);
+    });
+
+    addEventListener("mouseup", () => {
+      if (!isDrawing) return;
+      isDrawing = false;
+      if (drewSomething) pushUndo();
+    });
+
+    // Touch
+    art.addEventListener("touchstart", (e) => {
+      isDrawing = true;
+      drewSomething = false;
+      drawMode = eyedropper ? "pick" : "paint";
+      applyAt(e);
+      e.preventDefault();
+    }, {passive:false});
+
+    art.addEventListener("touchmove", (e) => {
+      if (!isDrawing) return;
+      applyAt(e);
+      e.preventDefault();
+    }, {passive:false});
+
+    art.addEventListener("touchend", () => {
+      if (!isDrawing) return;
+      isDrawing = false;
+      if (drewSomething) pushUndo();
+    });
+
+    // Buttons
+    gridBtn.onclick = () => {
+      showGrid = !showGrid;
+      gridBtn.textContent = `Grid Lines: ${showGrid ? "ON" : "OFF"}`;
+      draw();
+    };
+
+    eyedropBtn.onclick = () => {
+      eyedropper = !eyedropper;
+      eyedropBtn.textContent = `Eyedropper: ${eyedropper ? "ON" : "OFF"}`;
+      eyedropBtn.style.boxShadow = eyedropper ? "0 0 18px rgba(0,255,225,0.55)" : "0 0 12px rgba(0,255,225,0.25)";
+    };
+
+    clearBtn.onclick = () => {
+      pixels = pixels.map(row => row.map(() => ""));
+      pushUndo();
+      draw();
+    };
+
+    fillBtn.onclick = () => {
+      const color = colorPicker.value;
+      pixels = pixels.map(row => row.map(() => color));
+      pushUndo();
+      draw();
+    };
+
+    undoBtn.onclick = () => popUndo();
+
+    // Resize (grid size) – preserves center-ish content by nearest-neighbor remap
+    function remapPixels(newN){
+      const old = pixels;
+      const oldN = old.length;
+
+      const next = Array.from({length:newN}, () => Array(newN).fill(""));
+
+      for (let y=0; y<newN; y++){
+        for (let x=0; x<newN; x++){
+          const oy = Math.floor(y * (oldN / newN));
+          const ox = Math.floor(x * (oldN / newN));
+          next[y][x] = old[oy]?.[ox] ?? "";
+        }
+      }
+      pixels = next;
+      N = newN;
+      setSizeLabel();
+      pushUndo();
+      draw();
+    }
+
+    sizeRange.addEventListener("input", () => {
+      const v = Number(sizeRange.value);
+      sizeLabel.textContent = `${v}×${v}`;
+    });
+
+    resizeBtn.onclick = () => {
+      const newN = Number(sizeRange.value);
+      if (newN === N) return;
+      remapPixels(newN);
+    };
+
+    // Download PNG (scaled up crisp)
+    downloadBtn.onclick = () => {
+      const outScale = Math.max(8, Math.floor(1024 / N)); // auto scale for clarity
+      const out = document.createElement("canvas");
+      out.width = N * outScale;
+      out.height = N * outScale;
+      const octx = out.getContext("2d");
+
+      // transparent background; draw pixels
+      for (let y=0; y<N; y++){
+        for (let x=0; x<N; x++){
+          const c = pixels[y][x];
+          if (!c) continue;
+          octx.fillStyle = c;
+          octx.fillRect(x*outScale, y*outScale, outScale, outScale);
+        }
+      }
+
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+      a.download = `jerry-pixel-${N}x${N}-${stamp}.png`;
+      a.href = out.toDataURL("image/png");
+      a.click();
+    };
+
+    // Save/Load to localStorage
+    function storageKey(){ return "JERRY_PIXEL_LAB_v1"; }
+
+    saveBtn.onclick = () => {
+      const payload = { N, pixels, color: colorPicker.value, showGrid };
+      localStorage.setItem(storageKey(), JSON.stringify(payload));
+      saveBtn.textContent = "Saved!";
+      setTimeout(()=> saveBtn.textContent="Save (local)", 900);
+    };
+
+    loadBtn.onclick = () => {
+      const raw = localStorage.getItem(storageKey());
+      if (!raw){
+        loadBtn.textContent = "No save";
+        setTimeout(()=> loadBtn.textContent="Load", 900);
+        return;
+      }
+      try{
+        const payload = JSON.parse(raw);
+        const newN = Number(payload.N) || 16;
+        N = Math.min(100, Math.max(8, newN));
+        sizeRange.value = String(N);
+        setSizeLabel();
+
+        pixels = Array.isArray(payload.pixels) ? payload.pixels : pixels;
+        // sanitize to NxN
+        if (pixels.length !== N){
+          // remap if different
+          const old = pixels;
+          const oldN = old.length || N;
+          const next = Array.from({length:N}, () => Array(N).fill(""));
+          for (let y=0; y<N; y++){
+            for (let x=0; x<N; x++){
+              const oy = Math.floor(y * (oldN / N));
+              const ox = Math.floor(x * (oldN / N));
+              next[y][x] = old[oy]?.[ox] ?? "";
+            }
+          }
+          pixels = next;
+        }
+
+        if (typeof payload.color === "string") colorPicker.value = payload.color;
+        showGrid = payload.showGrid !== false;
+
+        gridBtn.textContent = `Grid Lines: ${showGrid ? "ON" : "OFF"}`;
+        updatePaletteActive();
+        undoStack = [];
+        pushUndo();
+        draw();
+
+        loadBtn.textContent = "Loaded!";
+        setTimeout(()=> loadBtn.textContent="Load", 900);
+      }catch(e){
+        console.log(e);
+        loadBtn.textContent = "Load failed";
+        setTimeout(()=> loadBtn.textContent="Load", 900);
+      }
+    };
+
+    // Init
+    initPixels(N);
+  </script>
+</body>
+</html>
