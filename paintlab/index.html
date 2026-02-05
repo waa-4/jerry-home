@@ -1,0 +1,151 @@
+<!DOCTYPE html><html><head>
+<meta charset="UTF-8">
+<title>JERRY Paint Lab v2</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+html,body{
+  margin:0; height:100%; background:black; color:#00ffcc; font-family:monospace; overflow:hidden;
+}
+#matrix{position:fixed; inset:0; z-index:0;}
+#ui{
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  width:92%; max-width:900px;
+  background:rgba(0,0,0,0.85);
+  border:2px solid #00ffcc;
+  box-shadow:0 0 30px #00ffcc;
+  padding:12px; z-index:5;
+}
+h1{text-align:center; text-shadow:0 0 20px #00ffff; margin:5px;}
+#tools{
+  display:flex; flex-wrap:wrap; gap:10px; justify-content:center; margin:10px 0;
+}
+button,input[type=color],input[type=range],input[type=file]{
+  background:black; color:#00ffcc; border:1px solid #00ffcc;
+  padding:6px; font-family:monospace; cursor:pointer;
+}
+canvas#paint{width:100%; background:black; border:1px solid #00ffcc; cursor:crosshair;}
+#hint{opacity:.6; font-size:12px; text-align:center; margin-top:4px;}
+</style>
+</head>
+<body>
+
+<canvas id="matrix"></canvas>
+
+<div id="ui">
+<h1>🎨 JERRY PAINT LAB v2</h1>
+
+<div id="tools">
+  <input type="file" id="file">
+  <input type="color" id="color" value="#00ffcc">
+  <input type="range" id="size" min="1" max="50" value="8">
+  <button onclick="tool='draw'">Draw</button>
+  <button onclick="tool='erase'">Erase</button>
+  <button onclick="tool='glitch'">Glitch</button>
+  <button onclick="warp()">Warp</button>
+  <button onclick="download()">Download</button>
+</div>
+
+<canvas id="paint"></canvas>
+<div id="hint">Upload image → Draw / Glitch → Warp → Download</div>
+</div>
+
+<script>
+/* MATRIX BACKGROUND */
+const m = document.getElementById("matrix"), mc = m.getContext("2d");
+function resizeMatrix(){m.width=innerWidth; m.height=innerHeight;}
+addEventListener("resize", resizeMatrix); resizeMatrix();
+const chars = "JERRY0123456789+-*/=x^()";
+let cols = Math.floor(m.width/18), drops = Array(cols).fill(0);
+setInterval(()=>{
+  mc.fillStyle="rgba(0,0,0,.1)";
+  mc.fillRect(0,0,m.width,m.height);
+  mc.fillStyle="#00ffcc"; mc.font="14px monospace";
+  drops.forEach((y,i)=>{
+    const t = chars[Math.floor(Math.random()*chars.length)];
+    mc.fillText(t,i*18,y*18);
+    if(y*18>m.height && Math.random()>0.98) drops[i]=0;
+    drops[i]++;
+  });
+},50);
+
+/* PAINT ENGINE */
+const canvas = document.getElementById("paint"), ctx = canvas.getContext("2d");
+let drawing=false, tool="draw";
+canvas.width = 800; canvas.height = 420;
+
+let img = new Image(); // Background image
+let imgData = null;
+
+document.getElementById("file").addEventListener("change", e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  img = new Image();
+  img.onload = ()=>{
+    // Resize image to fit canvas
+    const ratio = Math.min(800/img.width, 420/img.height);
+    canvas.width = img.width*ratio;
+    canvas.height = img.height*ratio;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    imgData = ctx.getImageData(0,0,canvas.width,canvas.height); // for warp
+  }
+  img.src = URL.createObjectURL(file);
+});
+
+canvas.addEventListener("mousedown", e=>drawing=true);
+canvas.addEventListener("mouseup", e=>drawing=false);
+canvas.addEventListener("mouseleave", e=>drawing=false);
+canvas.addEventListener("mousemove", draw);
+
+function draw(e){
+  if(!drawing) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left)*(canvas.width/rect.width);
+  const y = (e.clientY - rect.top)*(canvas.height/rect.height);
+
+  ctx.lineWidth = document.getElementById("size").value;
+  ctx.lineCap = "round";
+
+  if(tool=="glitch"){
+    // Random color offset for glitch
+    const offsetX = Math.random()*10-5;
+    const offsetY = Math.random()*10-5;
+    ctx.strokeStyle = ['#ff00ff','#00ffff','#ffff00'][Math.floor(Math.random()*3)];
+    ctx.globalCompositeOperation = "lighter";
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    ctx.lineTo(x+offsetX, y+offsetY);
+    ctx.stroke();
+  } else {
+    ctx.strokeStyle = tool=="erase"?"black":document.getElementById("color").value;
+    ctx.globalCompositeOperation = tool=="erase"?"destination-out":"source-over";
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    ctx.lineTo(x+0.1,y+0.1);
+    ctx.stroke();
+  }
+}
+
+/* WARP EFFECT */
+function warp(){
+  if(!imgData) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let y=0;y<imgData.height;y++){
+    const shift = Math.sin(y/20)*10;
+    ctx.putImageData(imgData, shift, y, 0, y, imgData.width, 1);
+  }
+}
+
+/* DOWNLOAD */
+function download(){
+  const a=document.createElement("a");
+  a.download="jerry_art.png";
+  a.href=canvas.toDataURL();
+  a.click();
+}
+</script>
+
+
+
+</body></html>
