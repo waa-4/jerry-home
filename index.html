@@ -224,24 +224,22 @@ drawParticles();
   const container = document.getElementById("container");
   const plugins = (window.JERRY_PLUGINS || []);
 
-<script>
-(async function(){
-  try {
-    const res = await fetch("./other/plugins.html", { cache: "no-store" });
+  
+  // Create a card for each plugin
+  for (const p of plugins) {
+    const card = document.createElement("div");
+    card.className = "siteCard";
+    card.onclick = () => location.href = p.href;
 
-    if (!res.ok) throw new Error("plugins.html not found");
+    card.innerHTML = `
+      <div class="preview">${p.icon || "🧩"}</div>
+      <div class="description">${escapeHtml(p.title || "Untitled")}<br>
+        <span style="font-size:12px; opacity:0.85;">${escapeHtml(p.description || "")}</span>
+      </div>
+    `;
 
-    const html = await res.text();
-
-    document.getElementById("pluginMount").innerHTML = html;
-
-  } catch (err) {
-    console.log("Plugin load failed:", err);
+    container.appendChild(card);
   }
-})();
-</script>
-
-
 
   function escapeHtml(s){
     return String(s).replace(/[&<>"']/g, c => ({
