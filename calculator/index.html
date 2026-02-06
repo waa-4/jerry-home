@@ -3,6 +3,26 @@
 <title data-id="th-modified">Calculator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
+
+/* JERRY cyan bottom glow */
+#bottomGlow{
+  position:fixed;
+  left:0;
+  bottom:0;
+  width:100%;
+  height:220px;
+  pointer-events:none;
+  z-index:-1;
+
+  background:linear-gradient(
+    to top,
+    rgba(0,255,225,0.25),
+    rgba(0,255,225,0.12),
+    transparent
+  );
+}
+
+    
 html,body{
     margin:0;height:100%;background:black;color:#00ffcc;
     font-family:monospace;overflow:hidden;
