@@ -11,3 +11,11 @@ window.JERRY_PLUGINS = [
     href: "./pixelart/" // you can point anywhere
   }
 ];
+  {
+    id: "mapmaker",
+    title: "Map Maker",
+    icon: "🖼",
+    description: "You can create a map with this for free! :D",
+    href: "./mapmaker/" // you can point anywhere
+  }
+];
