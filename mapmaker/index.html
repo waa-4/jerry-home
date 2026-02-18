@@ -1,0 +1,832 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>JERRY Map Creator</title>
+<style>
+  :root{
+    --cyan:#00ffe1;
+    --bg:#05070a;
+    --panel:rgba(8,10,14,.82);
+    --stroke:rgba(0,255,225,.28);
+    --soft:rgba(0,255,225,.12);
+    --text:#dff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; height:100vh; overflow:hidden;
+    background: radial-gradient(1200px 700px at 50% 115%, rgba(0,255,225,.18), transparent 55%),
+                #000;
+    color:var(--text);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  /* Matrix-ish animated background */
+  #matrix{
+    position:fixed; inset:0; z-index:-3;
+    filter: saturate(1.2) contrast(1.05);
+  }
+  #bottomGlow{
+    position:fixed; left:0; right:0; bottom:0; height:220px;
+    background: linear-gradient(to top, rgba(0,255,225,.26), transparent);
+    z-index:-2;
+    pointer-events:none;
+  }
+
+  .ui{
+    position:fixed; top:12px; left:12px; right:12px;
+    display:grid; grid-template-columns: 360px 1fr 360px;
+    gap:12px;
+    z-index:5;
+    pointer-events:none;
+  }
+  .panel{
+    pointer-events:auto;
+    background:var(--panel);
+    border:1px solid var(--stroke);
+    border-radius:16px;
+    padding:12px;
+    box-shadow: 0 0 18px rgba(0,255,225,.12);
+    backdrop-filter: blur(6px);
+  }
+  .panel h2{
+    margin:0 0 10px 0;
+    font-size:14px;
+    letter-spacing:.08em;
+    color:var(--cyan);
+    text-shadow: 0 0 12px rgba(0,255,225,.45);
+  }
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  .row + .row{margin-top:10px}
+  button, select, input{
+    font-family:inherit;
+    border-radius:12px;
+    border:1px solid var(--stroke);
+    background: rgba(10,16,20,.85);
+    color:var(--text);
+    padding:10px 12px;
+    outline:none;
+  }
+  button{
+    cursor:pointer;
+    transition:.15s transform,.15s box-shadow;
+    box-shadow: 0 0 0 rgba(0,255,225,0);
+  }
+  button:hover{transform:translateY(-1px); box-shadow:0 0 18px rgba(0,255,225,.18)}
+  button.primary{background: rgba(0,140,120,.62)}
+  button.danger{background: rgba(150,30,60,.45)}
+  button.ghost{background: rgba(10,16,20,.35)}
+  .pill{
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid var(--stroke);
+    background: rgba(0,255,225,.07);
+    font-size:12px;
+    opacity:.95;
+  }
+
+  #canvasWrap{
+    position:fixed; inset:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  #mapCanvas{
+    width:min(92vw, 1100px);
+    height:min(82vh, 780px);
+    border-radius:18px;
+    border:1px solid rgba(0,255,225,.35);
+    background: rgba(0,0,0,.35);
+    box-shadow: 0 0 30px rgba(0,255,225,.16);
+    touch-action:none; /* allow drawing on mobile */
+  }
+
+  .palette{
+    display:grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap:8px;
+  }
+  .swatch{
+    width:100%; height:34px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,.15);
+    cursor:pointer;
+    position:relative;
+  }
+  .swatch.sel::after{
+    content:"";
+    position:absolute; inset:-2px;
+    border-radius:12px;
+    border:2px solid var(--cyan);
+    box-shadow: 0 0 12px rgba(0,255,225,.25);
+    pointer-events:none;
+  }
+
+  .kbd{opacity:.9; font-size:12px; line-height:1.4}
+  .small{font-size:12px; opacity:.9}
+  .split{display:flex; justify-content:space-between; gap:12px; align-items:center}
+  textarea{
+    width:100%; height:160px; resize:none;
+    border-radius:12px;
+    border:1px solid var(--stroke);
+    background: rgba(10,16,20,.65);
+    color:var(--text);
+    padding:10px;
+  }
+
+  /* Right panel: selected object controls */
+  .field{display:flex; gap:10px; align-items:center}
+  .field label{font-size:12px; opacity:.9; width:80px}
+  .field input[type="range"]{width:100%}
+</style>
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div id="bottomGlow"></div>
+
+<div class="ui">
+  <!-- Left panel -->
+  <div class="panel" id="toolsPanel">
+    <h2>TOOLS</h2>
+
+    <div class="row">
+      <button class="primary" id="toolPaint">Paint</button>
+      <button id="toolErase">Erase</button>
+      <button id="toolMarkerCircle">Circle</button>
+      <button id="toolMarkerSquare">Square</button>
+      <button id="toolLabel">Text</button>
+      <span class="pill" id="modePill">Mode: Paint</span>
+    </div>
+
+    <div class="row">
+      <span class="pill">Brush</span>
+      <input id="brushSize" type="range" min="1" max="16" value="5" />
+      <span class="pill" id="brushRead">5</span>
+      <span class="pill">Grid</span>
+      <select id="gridSize">
+        <option value="32">32x32</option>
+        <option value="48">48x48</option>
+        <option value="64" selected>64x64</option>
+        <option value="80">80x80</option>
+        <option value="100">100x100</option>
+      </select>
+    </div>
+
+    <div class="row">
+      <button class="primary" id="btnAuto">Auto-Generate</button>
+      <button id="btnClear">Clear</button>
+      <button id="btnUndo">Undo</button>
+      <button id="btnRedo">Redo</button>
+    </div>
+
+    <div class="row" style="align-items:flex-start">
+      <div style="flex:1">
+        <div class="small" style="margin-bottom:6px;color:var(--cyan)">Land Palette</div>
+        <div class="palette" id="palette"></div>
+      </div>
+    </div>
+
+    <div class="row kbd">
+      <div>
+        <div>• Drag = paint/move</div>
+        <div>• Click object = select</div>
+        <div>• <b>Del</b> = delete selected</div>
+        <div>• <b>Ctrl+Z</b> undo, <b>Ctrl+Y</b> redo</div>
+        <div>• Mouse wheel on selected = resize</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Center spacer -->
+  <div></div>
+
+  <!-- Right panel -->
+  <div class="panel" id="dataPanel">
+    <h2>EXPORT / IMPORT</h2>
+    <div class="row">
+      <button class="primary" id="btnExport">Export JSON</button>
+      <button id="btnImport">Import JSON</button>
+      <button class="ghost" id="btnCopy">Copy</button>
+    </div>
+    <div class="row">
+      <textarea id="jsonBox" spellcheck="false" placeholder="Exported JSON appears here..."></textarea>
+    </div>
+
+    <h2 style="margin-top:12px">SELECTED</h2>
+    <div id="selNone" class="small">Nothing selected.</div>
+    <div id="selBox" style="display:none">
+      <div class="field"><label>Type</label><span class="pill" id="selType"></span></div>
+      <div class="field"><label>Color</label><input id="selColor" type="color" value="#00ffe1"></div>
+      <div class="field"><label>Size</label><input id="selSize" type="range" min="6" max="120" value="30"></div>
+      <div class="field"><label>Text</label><input id="selText" type="text" placeholder="Label text"></div>
+      <div class="row">
+        <button class="danger" id="btnDeleteSel">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="canvasWrap">
+  <canvas id="mapCanvas" width="1100" height="780"></canvas>
+</div>
+
+<script>
+/* ===================== MATRIX BACKGROUND ===================== */
+(() => {
+  const c = document.getElementById("matrix");
+  const ctx = c.getContext("2d");
+  const chars = "01<>/=+ -JERRY";
+  let w,h,cols,drops,size=16;
+
+  function resize(){
+    w = c.width = innerWidth;
+    h = c.height = innerHeight;
+    cols = Math.floor(w/size);
+    drops = new Array(cols).fill(1);
+  }
+  addEventListener("resize", resize);
+  resize();
+
+  setInterval(() => {
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    ctx.fillRect(0,0,w,h);
+    ctx.fillStyle = "rgba(0,255,225,0.7)";
+    ctx.font = size+"px monospace";
+    for(let i=0;i<drops.length;i++){
+      const ch = chars[Math.floor(Math.random()*chars.length)];
+      ctx.fillText(ch, i*size, drops[i]*size);
+      if(drops[i]*size > h && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }, 33);
+})();
+
+/* ===================== MAP CREATOR CORE ===================== */
+const canvas = document.getElementById("mapCanvas");
+const ctx = canvas.getContext("2d");
+
+const ui = {
+  modePill: document.getElementById("modePill"),
+  brushSize: document.getElementById("brushSize"),
+  brushRead: document.getElementById("brushRead"),
+  gridSize: document.getElementById("gridSize"),
+  palette: document.getElementById("palette"),
+  jsonBox: document.getElementById("jsonBox"),
+  selNone: document.getElementById("selNone"),
+  selBox: document.getElementById("selBox"),
+  selType: document.getElementById("selType"),
+  selColor: document.getElementById("selColor"),
+  selSize: document.getElementById("selSize"),
+  selText: document.getElementById("selText"),
+};
+
+const MODES = {
+  PAINT:"Paint",
+  ERASE:"Erase",
+  CIRCLE:"Circle",
+  SQUARE:"Square",
+  LABEL:"Text",
+  MOVE:"Move",
+};
+let mode = MODES.PAINT;
+
+const LAND_COLORS = [
+  "#1c2e2a", // deep green
+  "#2f4a35", // forest
+  "#4a6b3f", // grass
+  "#6b8b4e", // light grass
+  "#9dbb6d", // plains
+  "#c2b280", // sand
+  "#7a6a54", // dirt
+  "#4b4b58", // rock
+  "#2b2b33", // dark rock
+  "#305a7a", // water-ish (optional land palette slot)
+  "#5d3a6a", // weird biome
+  "#9a2a4a", // corrupted
+];
+let selectedLandColor = LAND_COLORS[2];
+
+let gridN = parseInt(ui.gridSize.value, 10); // e.g. 64
+let brush = parseInt(ui.brushSize.value, 10); // in cells radius-ish
+
+// map grid: 0 = empty/water, otherwise a color string index stored
+let grid = new Array(gridN*gridN).fill(null);
+
+// objects: markers + labels
+let objects = []; // {id,type,x,y,size,color,text}
+let selectedId = null;
+
+// view transform (for future zoom/pan; v1 fixed)
+function toCanvasPos(clientX, clientY){
+  const rect = canvas.getBoundingClientRect();
+  const x = (clientX - rect.left) * (canvas.width / rect.width);
+  const y = (clientY - rect.top) * (canvas.height / rect.height);
+  return {x,y};
+}
+
+function cellSize(){
+  return {
+    cw: canvas.width / gridN,
+    ch: canvas.height / gridN
+  };
+}
+
+function idx(x,y){ return y*gridN + x; }
+function inBounds(x,y){ return x>=0 && y>=0 && x<gridN && y<gridN; }
+
+/* ===== History (Undo/Redo) ===== */
+let undoStack = [];
+let redoStack = [];
+function snapshot(){
+  return {
+    gridN,
+    grid: grid.slice(),
+    objects: JSON.parse(JSON.stringify(objects)),
+  };
+}
+function pushUndo(){
+  undoStack.push(snapshot());
+  if(undoStack.length > 60) undoStack.shift();
+  redoStack.length = 0;
+}
+function applyState(st){
+  gridN = st.gridN;
+  ui.gridSize.value = String(gridN);
+  grid = st.grid.slice();
+  objects = JSON.parse(JSON.stringify(st.objects));
+  selectedId = null;
+  render();
+  refreshSelectionUI();
+}
+
+/* ===== Palette UI ===== */
+function buildPalette(){
+  ui.palette.innerHTML = "";
+  LAND_COLORS.forEach((c) => {
+    const d = document.createElement("div");
+    d.className = "swatch" + (c===selectedLandColor ? " sel":"");
+    d.style.background = c;
+    d.title = c;
+    d.onclick = () => {
+      selectedLandColor = c;
+      buildPalette();
+    };
+    ui.palette.appendChild(d);
+  });
+}
+buildPalette();
+
+/* ===== Mode UI ===== */
+function setMode(m){
+  mode = m;
+  ui.modePill.textContent = "Mode: " + m;
+}
+document.getElementById("toolPaint").onclick = () => setMode(MODES.PAINT);
+document.getElementById("toolErase").onclick = () => setMode(MODES.ERASE);
+document.getElementById("toolMarkerCircle").onclick = () => setMode(MODES.CIRCLE);
+document.getElementById("toolMarkerSquare").onclick = () => setMode(MODES.SQUARE);
+document.getElementById("toolLabel").onclick = () => setMode(MODES.LABEL);
+
+ui.brushSize.oninput = () => {
+  brush = parseInt(ui.brushSize.value,10);
+  ui.brushRead.textContent = brush;
+};
+
+ui.gridSize.onchange = () => {
+  pushUndo();
+  gridN = parseInt(ui.gridSize.value,10);
+  grid = new Array(gridN*gridN).fill(null);
+  render();
+};
+
+/* ===================== DRAW / ERASE LAND ===================== */
+function paintAt(px, py, colorOrNull){
+  const {cw,ch} = cellSize();
+  const cx = Math.floor(px / cw);
+  const cy = Math.floor(py / ch);
+
+  const r = brush; // in cells
+  for(let oy=-r; oy<=r; oy++){
+    for(let ox=-r; ox<=r; ox++){
+      const x = cx + ox, y = cy + oy;
+      if(!inBounds(x,y)) continue;
+      // round brush
+      if(ox*ox + oy*oy > r*r) continue;
+      grid[idx(x,y)] = colorOrNull;
+    }
+  }
+}
+
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // background water
+  ctx.fillStyle = "rgba(10,18,26,0.75)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // subtle grid lines
+  const {cw,ch} = cellSize();
+  ctx.strokeStyle = "rgba(0,255,225,0.06)";
+  ctx.lineWidth = 1;
+  for(let i=0;i<=gridN;i++){
+    ctx.beginPath(); ctx.moveTo(i*cw,0); ctx.lineTo(i*cw,canvas.height); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,i*ch); ctx.lineTo(canvas.width,i*ch); ctx.stroke();
+  }
+
+  // land
+  for(let y=0;y<gridN;y++){
+    for(let x=0;x<gridN;x++){
+      const v = grid[idx(x,y)];
+      if(!v) continue;
+      ctx.fillStyle = v;
+      ctx.fillRect(x*cw, y*ch, cw, ch);
+    }
+  }
+
+  // objects
+  for(const o of objects){
+    const isSel = o.id === selectedId;
+    ctx.save();
+    ctx.translate(o.x, o.y);
+
+    if(o.type === "label"){
+      ctx.font = `bold ${Math.max(14, Math.floor(o.size/2))}px ui-monospace, monospace`;
+      ctx.fillStyle = o.color;
+      ctx.shadowColor = "rgba(0,255,225,0.25)";
+      ctx.shadowBlur = 10;
+      ctx.fillText(o.text || "Label", 0, 0);
+      if(isSel){
+        const w = ctx.measureText(o.text || "Label").width;
+        ctx.strokeStyle = "rgba(0,255,225,0.8)";
+        ctx.strokeRect(-4, -18, w+8, 26);
+      }
+    } else {
+      // marker
+      ctx.fillStyle = o.color;
+      ctx.shadowColor = "rgba(0,255,225,0.25)";
+      ctx.shadowBlur = 12;
+      const s = o.size;
+      if(o.type === "circle"){
+        ctx.beginPath();
+        ctx.arc(0,0,s/2,0,Math.PI*2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(-s/2,-s/2,s,s);
+      }
+      if(isSel){
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(0,255,225,0.95)";
+        ctx.strokeRect(-s/2-4, -s/2-4, s+8, s+8);
+      }
+    }
+    ctx.restore();
+  }
+}
+
+/* ===================== OBJECT HIT TEST / SELECT ===================== */
+function hitObject(px, py){
+  // top-most first
+  for(let i=objects.length-1;i>=0;i--){
+    const o = objects[i];
+    if(o.type === "label"){
+      // rough bounding box
+      ctx.save();
+      ctx.font = `bold ${Math.max(14, Math.floor(o.size/2))}px ui-monospace, monospace`;
+      const w = ctx.measureText(o.text || "Label").width;
+      ctx.restore();
+      if(px >= o.x-6 && px <= o.x+w+6 && py >= o.y-20 && py <= o.y+10){
+        return o;
+      }
+    } else {
+      const s = o.size;
+      if(px >= o.x - s/2 && px <= o.x + s/2 && py >= o.y - s/2 && py <= o.y + s/2){
+        return o;
+      }
+    }
+  }
+  return null;
+}
+
+function selectObject(obj){
+  selectedId = obj ? obj.id : null;
+  refreshSelectionUI();
+  render();
+}
+
+function refreshSelectionUI(){
+  const obj = objects.find(o => o.id === selectedId);
+  if(!obj){
+    ui.selNone.style.display = "block";
+    ui.selBox.style.display = "none";
+    return;
+  }
+  ui.selNone.style.display = "none";
+  ui.selBox.style.display = "block";
+  ui.selType.textContent = obj.type;
+  ui.selColor.value = rgbToHex(obj.color);
+  ui.selSize.value = String(obj.size);
+  ui.selText.style.display = (obj.type==="label") ? "block" : "none";
+  ui.selText.value = obj.text || "";
+}
+
+function rgbToHex(color){
+  // color is stored as CSS string like "#00ffe1" or "rgb(...)"
+  // We keep it as hex always for simplicity.
+  if(color.startsWith("#")) return color;
+  return "#00ffe1";
+}
+
+ui.selColor.oninput = () => {
+  const obj = objects.find(o => o.id === selectedId);
+  if(!obj) return;
+  pushUndo();
+  obj.color = ui.selColor.value;
+  render();
+};
+
+ui.selSize.oninput = () => {
+  const obj = objects.find(o => o.id === selectedId);
+  if(!obj) return;
+  obj.size = parseInt(ui.selSize.value,10);
+  render();
+};
+ui.selSize.onchange = () => pushUndo();
+
+ui.selText.oninput = () => {
+  const obj = objects.find(o => o.id === selectedId);
+  if(!obj) return;
+  obj.text = ui.selText.value;
+  render();
+};
+
+document.getElementById("btnDeleteSel").onclick = () => {
+  const idx = objects.findIndex(o => o.id === selectedId);
+  if(idx<0) return;
+  pushUndo();
+  objects.splice(idx,1);
+  selectedId = null;
+  refreshSelectionUI();
+  render();
+};
+
+function newId(){ return "o_" + Math.random().toString(36).slice(2) + "_" + Date.now(); }
+
+/* ===================== AUTO GENERATE ===================== */
+/* v1 generator: island blobs + erosion-ish smoothing + lakes */
+function autoGenerate(){
+  pushUndo();
+  grid = new Array(gridN*gridN).fill(null);
+
+  // helper random
+  const rand = (a,b)=>a+Math.random()*(b-a);
+
+  // pick 2-4 islands
+  const islands = Math.floor(rand(2,5));
+  const centers = [];
+  for(let i=0;i<islands;i++){
+    centers.push({
+      x: rand(gridN*0.2, gridN*0.8),
+      y: rand(gridN*0.2, gridN*0.8),
+      r: rand(gridN*0.18, gridN*0.32),
+    });
+  }
+
+  // base: fill land by distance to island centers
+  for(let y=0;y<gridN;y++){
+    for(let x=0;x<gridN;x++){
+      let m = 999;
+      for(const c of centers){
+        const dx=x-c.x, dy=y-c.y;
+        const d = Math.sqrt(dx*dx+dy*dy) / c.r;
+        m = Math.min(m, d);
+      }
+      // noise
+      const n = (Math.sin(x*0.35)+Math.cos(y*0.31))*0.06 + (Math.random()-0.5)*0.12;
+      const v = m + n;
+
+      if(v < 1.0){
+        // choose biome by "height"
+        // smaller v = more central/high land
+        let col = LAND_COLORS[2]; // grass
+        if(v < 0.35) col = LAND_COLORS[1]; // forest
+        if(v < 0.22) col = LAND_COLORS[0]; // deep green
+        if(v > 0.85) col = LAND_COLORS[5]; // sand coastline
+        grid[idx(x,y)] = col;
+      }
+    }
+  }
+
+  // smoothing passes (erode jaggies)
+  for(let pass=0; pass<3; pass++){
+    const next = grid.slice();
+    for(let y=1;y<gridN-1;y++){
+      for(let x=1;x<gridN-1;x++){
+        let landCount=0;
+        for(let oy=-1;oy<=1;oy++){
+          for(let ox=-1;ox<=1;ox++){
+            if(grid[idx(x+ox,y+oy)]) landCount++;
+          }
+        }
+        if(landCount <= 3) next[idx(x,y)] = null;
+        if(landCount >= 6 && !grid[idx(x,y)]) next[idx(x,y)] = LAND_COLORS[5]; // sandy fill
+      }
+    }
+    grid = next;
+  }
+
+  // lakes: carve a few circles inside land
+  const lakes = Math.floor(rand(2,6));
+  for(let i=0;i<lakes;i++){
+    const lx = rand(gridN*0.25, gridN*0.75);
+    const ly = rand(gridN*0.25, gridN*0.75);
+    const rr = rand(2, 6);
+    for(let y=0;y<gridN;y++){
+      for(let x=0;x<gridN;x++){
+        const dx=x-lx, dy=y-ly;
+        if(dx*dx+dy*dy <= rr*rr){
+          // only carve if it was land
+          if(grid[idx(x,y)]) grid[idx(x,y)] = null;
+        }
+      }
+    }
+  }
+
+  render();
+}
+
+document.getElementById("btnAuto").onclick = autoGenerate;
+
+/* ===================== UNDO / REDO ===================== */
+document.getElementById("btnUndo").onclick = () => {
+  if(undoStack.length===0) return;
+  redoStack.push(snapshot());
+  applyState(undoStack.pop());
+};
+document.getElementById("btnRedo").onclick = () => {
+  if(redoStack.length===0) return;
+  undoStack.push(snapshot());
+  applyState(redoStack.pop());
+};
+
+addEventListener("keydown",(e)=>{
+  if(e.key==="Delete"){
+    const i = objects.findIndex(o => o.id === selectedId);
+    if(i>=0){
+      pushUndo();
+      objects.splice(i,1);
+      selectedId=null;
+      refreshSelectionUI();
+      render();
+    }
+  }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="z"){
+    e.preventDefault();
+    document.getElementById("btnUndo").click();
+  }
+  if((e.ctrlKey||e.metaKey) && (e.key.toLowerCase()==="y")){
+    e.preventDefault();
+    document.getElementById("btnRedo").click();
+  }
+});
+
+/* ===================== EXPORT / IMPORT ===================== */
+function exportJSON(){
+  const data = {
+    version: 1,
+    gridN,
+    grid,
+    objects,
+  };
+  ui.jsonBox.value = JSON.stringify(data, null, 2);
+}
+function importJSON(){
+  try{
+    const data = JSON.parse(ui.jsonBox.value);
+    if(!data || !data.gridN || !Array.isArray(data.grid) || !Array.isArray(data.objects)) throw new Error("Bad JSON");
+    pushUndo();
+    gridN = data.gridN;
+    ui.gridSize.value = String(gridN);
+    grid = data.grid;
+    objects = data.objects;
+    selectedId = null;
+    render();
+    refreshSelectionUI();
+  }catch(err){
+    alert("Import failed: " + err.message);
+  }
+}
+document.getElementById("btnExport").onclick = exportJSON;
+document.getElementById("btnImport").onclick = importJSON;
+document.getElementById("btnCopy").onclick = async () => {
+  try{
+    await navigator.clipboard.writeText(ui.jsonBox.value || "");
+  }catch{
+    alert("Copy failed (browser blocked clipboard).");
+  }
+};
+
+document.getElementById("btnClear").onclick = () => {
+  pushUndo();
+  grid = new Array(gridN*gridN).fill(null);
+  objects = [];
+  selectedId=null;
+  refreshSelectionUI();
+  render();
+};
+
+/* ===================== INPUT (DRAW / PLACE / MOVE) ===================== */
+let dragging = false;
+let dragObj = null;
+let dragOffset = {x:0,y:0};
+
+function placeObject(px, py){
+  const base = {
+    id: newId(),
+    x: px, y: py,
+    size: 30,
+    color: "#00ffe1",
+    text: "Label"
+  };
+  if(mode === MODES.CIRCLE){
+    pushUndo();
+    objects.push({...base, type:"circle"});
+    selectObject(objects[objects.length-1]);
+  } else if(mode === MODES.SQUARE){
+    pushUndo();
+    objects.push({...base, type:"square"});
+    selectObject(objects[objects.length-1]);
+  } else if(mode === MODES.LABEL){
+    const text = prompt("Label text?", "New Label");
+    if(text === null) return;
+    pushUndo();
+    objects.push({...base, type:"label", text:text, size:36, color:"#00ffe1"});
+    selectObject(objects[objects.length-1]);
+  }
+}
+
+canvas.addEventListener("pointerdown", (e)=>{
+  const p = toCanvasPos(e.clientX, e.clientY);
+  canvas.setPointerCapture(e.pointerId);
+
+  const hit = hitObject(p.x, p.y);
+  if(hit){
+    selectObject(hit);
+    // move if not painting/erasing
+    dragging = true;
+    dragObj = hit;
+    dragOffset.x = p.x - hit.x;
+    dragOffset.y = p.y - hit.y;
+    return;
+  }
+
+  // if placing objects
+  if([MODES.CIRCLE, MODES.SQUARE, MODES.LABEL].includes(mode)){
+    placeObject(p.x, p.y);
+    render();
+    return;
+  }
+
+  // paint/erase
+  pushUndo();
+  dragging = true;
+  if(mode === MODES.PAINT) paintAt(p.x, p.y, selectedLandColor);
+  if(mode === MODES.ERASE) paintAt(p.x, p.y, null);
+  render();
+});
+
+canvas.addEventListener("pointermove", (e)=>{
+  if(!dragging) return;
+  const p = toCanvasPos(e.clientX, e.clientY);
+
+  if(dragObj){
+    dragObj.x = p.x - dragOffset.x;
+    dragObj.y = p.y - dragOffset.y;
+    render();
+    return;
+  }
+
+  if(mode === MODES.PAINT) paintAt(p.x, p.y, selectedLandColor);
+  if(mode === MODES.ERASE) paintAt(p.x, p.y, null);
+  render();
+});
+
+canvas.addEventListener("pointerup", (e)=>{
+  dragging = false;
+  dragObj = null;
+});
+
+canvas.addEventListener("wheel",(e)=>{
+  const obj = objects.find(o => o.id === selectedId);
+  if(!obj) return;
+  e.preventDefault();
+  pushUndo();
+  obj.size = Math.max(6, Math.min(120, obj.size + (e.deltaY < 0 ? 4 : -4)));
+  ui.selSize.value = String(obj.size);
+  render();
+}, {passive:false});
+
+render();
+setMode(MODES.PAINT);
+refreshSelectionUI();
+</script>
+</body>
+</html>
