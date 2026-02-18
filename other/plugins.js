@@ -10,12 +10,11 @@ window.JERRY_PLUGINS = [
     description: "You can use this to draw with pixels.",
     href: "./pixelart/" // you can point anywhere
   }
-];
   {
-    id: "mapmaker",
+      id: "mapmaker",
     title: "Map Maker",
     icon: "🖼",
     description: "You can create a map with this for free! :D",
     href: "./mapmaker/" // you can point anywhere
-  }
+}
 ];
