@@ -1,65 +1,435 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JERRY Clock</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JERRY Clock</title>
+  <style>
+    body{
+      margin:0;
+      font-family: monospace;
+      background:#000;
+      color:#00ffe1;
+      overflow-x:hidden;
+    }
+
+    /* bottom glow */
+    #bottomGlow{
+      position:fixed;
+      bottom:0;
+      width:100%;
+      height:220px;
+      background:linear-gradient(to top, rgba(0,255,225,0.25), transparent);
+      z-index:-1;
+      pointer-events:none;
+    }
+
+    .container{
+      width:min(980px, 92vw);
+      margin: 28px auto;
+      padding: 18px;
+      border: 2px solid #00ffe1;
+      border-radius: 18px;
+      background: rgba(0,0,0,0.55);
+      box-shadow: 0 0 18px rgba(0,255,255,0.22);
+    }
+
+    h1{
+      margin: 0 0 12px 0;
+      text-align:center;
+      text-shadow: 0 0 18px cyan;
+      letter-spacing: 2px;
+    }
+
+    h2{
+      margin: 14px 0 10px 0;
+      font-weight: normal;
+      opacity: 0.95;
+      text-align:center;
+    }
+
+    .tz-row{
+      display:flex;
+      justify-content:center;
+      gap:18px;
+      flex-wrap:wrap;
+      margin-top: 10px;
+    }
+
+    .tz-clock, .tz-panel{
+      width: min(420px, 92vw);
+      padding: 14px;
+      border: 2px solid cyan;
+      border-radius: 16px;
+      background: rgba(0,0,0,0.55);
+      box-shadow: 0 0 18px rgba(0,255,255,0.18);
+    }
+
+    .tz-title{
+      font-size: 1.1rem;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+
+    .tz-sub{
+      opacity: 0.8;
+      margin-top: 6px;
+    }
+
+    .clock{
+      font-size: 2.6rem;
+      text-shadow: 0 0 18px cyan;
+      margin-top: 6px;
+    }
+
+    .tz-time{
+      font-size: 2.2rem;
+      text-shadow: 0 0 18px cyan;
+      margin-top: 4px;
+    }
+
+    select#tzSelect{
+      width: 100%;
+      padding: 10px;
+      background: black;
+      border: 2px solid cyan;
+      color: cyan;
+      font-family: monospace;
+      font-size: 1rem;
+      border-radius: 10px;
+      outline:none;
+    }
+
+    .timer-section{
+      margin-top: 18px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(0,255,225,0.25);
+    }
+
+    .inputs{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      flex-wrap:wrap;
+      margin-top: 10px;
+    }
+
+    .inputs input{
+      width: 110px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 2px solid cyan;
+      background: rgba(0,0,0,0.8);
+      color: cyan;
+      font-size: 1.1rem;
+      font-family: monospace;
+      outline:none;
+      text-align:center;
+      box-shadow: 0 0 12px rgba(0,255,255,0.12);
+    }
+
+    .preview-line{
+      margin-top: 12px;
+      opacity: 0.9;
+      text-align:center;
+    }
+
+    .preview-line span{
+      font-weight: bold;
+      text-shadow: 0 0 12px cyan;
+    }
+
+    .buttons{
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      flex-wrap:wrap;
+      margin-top: 12px;
+    }
+
+    .buttons button{
+      padding: 12px 18px;
+      border-radius: 12px;
+      border: 2px solid cyan;
+      background: rgba(0,0,0,0.75);
+      color: cyan;
+      font-family: monospace;
+      font-size: 1rem;
+      cursor:pointer;
+      transition: transform 0.12s;
+      box-shadow: 0 0 14px rgba(0,255,255,0.15);
+    }
+
+    .buttons button:hover{
+      transform: scale(1.03);
+    }
+
+    .timer-display{
+      margin-top: 14px;
+      text-align:center;
+      font-size: 2.4rem;
+      text-shadow: 0 0 18px cyan;
+    }
+
+    #timerHint{
+      text-align:center;
+      margin-top: 8px;
+      opacity: 0.85;
+    }
+
+    /* Mobile scaling */
+    @media (max-width: 520px){
+      .inputs input{ width: 88px; }
+      .clock{ font-size: 2.2rem; }
+      .tz-time{ font-size: 2rem; }
+      .timer-display{ font-size: 2.1rem; }
+    }
+  </style>
 </head>
 <body>
+  <div id="bottomGlow"></div>
 
-<div class="matrix-bg"></div>
+  <div class="container">
+    <h1>JERRY CLOCK</h1>
 
-<div class="container">
-  <h1>JERRY CLOCK</h1>
+    <!-- CLOCK + TIMEZONE -->
+    <div class="tz-row">
+      <div class="tz-clock">
+        <div class="tz-title">Local Time</div>
+        <div class="clock" id="clock">00:00:00</div>
+        <div class="tz-sub" id="clockDate">---</div>
+      </div>
 
-  <!-- CLOCK + TIMEZONE -->
-  <div class="tz-row">
-    <div class="tz-clock">
-      <div class="tz-title">Local Time</div>
-      <div class="clock" id="clock">00:00:00</div>
-      <div class="tz-sub" id="clockDate">---</div>
+      <div class="tz-panel">
+        <div class="tz-title">Time Zone</div>
+        <select id="tzSelect"></select>
+        <div class="tz-sub">Selected:</div>
+        <div class="tz-time" id="tzTime">--:--:--</div>
+        <div class="tz-sub" id="tzDate">---</div>
+      </div>
     </div>
 
-    <div class="tz-panel">
-      <div class="tz-title">Time Zone</div>
-      <select id="tzSelect"></select>
-      <div class="tz-sub">Selected:</div>
-      <div class="tz-time" id="tzTime">--:--:--</div>
-      <div class="tz-sub" id="tzDate">---</div>
+    <!-- TIMER -->
+    <div class="timer-section">
+      <h2>Countdown Timer</h2>
+
+      <div class="inputs">
+        <input type="number" id="hours" placeholder="HH" min="0" max="99">
+        <input type="number" id="minutes" placeholder="MM" min="0" max="59">
+        <input type="number" id="seconds" placeholder="SS" min="0" max="59">
+      </div>
+
+      <div class="preview-line">
+        Preview: <span id="timerPreview">00:00:00</span>
+      </div>
+
+      <div class="buttons">
+        <button id="setBtn">Set</button>
+        <button id="startBtn">Start</button>
+        <button id="pauseBtn">Pause</button>
+        <button id="resetBtn">Reset</button>
+      </div>
+
+      <div class="timer-display" id="timerDisplay">00:00:00</div>
+      <div class="tz-sub" id="timerHint">Tip: Type time → Set → Start</div>
     </div>
   </div>
 
-  <!-- TIMER -->
-  <div class="timer-section">
-    <h2>Countdown Timer</h2>
+  <!-- Alarm sound (MUST exist or the script can error if you reference it) -->
+  <audio id="alarmSound" preload="auto">
+    <!-- You can replace this with your own mp3/ogg file -->
+    <!-- If you don't have a file yet, it still works (it just won't play sound). -->
+  </audio>
 
-    <div class="inputs">
-      <input type="number" id="hours" placeholder="HH" min="0" max="99">
-      <input type="number" id="minutes" placeholder="MM" min="0" max="59">
-      <input type="number" id="seconds" placeholder="SS" min="0" max="59">
-    </div>
+  <script>
+    // Run AFTER everything is loaded (this prevents the “buttons not working” issue)
+    window.addEventListener("DOMContentLoaded", () => {
 
-    <div class="preview-line">
-      Preview: <span id="timerPreview">00:00:00</span>
-    </div>
+      // ===== Helpers =====
+      const $ = (id) => document.getElementById(id);
+      function pad2(n){ return String(n).padStart(2,'0'); }
 
-    <div class="buttons">
-      <button id="setBtn">Set</button>
-      <button id="startBtn">Start</button>
-      <button id="pauseBtn">Pause</button>
-      <button id="resetBtn">Reset</button>
-    </div>
+      function formatHMS(totalSec){
+        totalSec = Math.max(0, Math.floor(totalSec));
+        const h = Math.floor(totalSec / 3600);
+        const m = Math.floor((totalSec % 3600) / 60);
+        const s = totalSec % 60;
+        return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
+      }
 
-    <div class="timer-display" id="timerDisplay">00:00:00</div>
-    <div class="tz-sub" id="timerHint">Tip: Click Set, then Start.</div>
-  </div>
-</div>
+      function readInputs(){
+        const h = Math.max(0, parseInt($("hours").value) || 0);
+        const m = Math.max(0, parseInt($("minutes").value) || 0);
+        const s = Math.max(0, parseInt($("seconds").value) || 0);
 
-<audio id="alarmSound">
-  <source src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg">
-</audio>
+        const hh = Math.min(99, h);
+        const mm = Math.min(59, m);
+        const ss = Math.min(59, s);
 
-<script src="script.js"></script>
+        $("hours").value = hh || "";
+        $("minutes").value = mm || "";
+        $("seconds").value = ss || "";
+
+        return hh * 3600 + mm * 60 + ss;
+      }
+
+      // ===== Local clock =====
+      function updateLocalClock(){
+        const now = new Date();
+        $("clock").textContent = now.toLocaleTimeString();
+        $("clockDate").textContent = now.toLocaleDateString(undefined, {
+          weekday:"long", year:"numeric", month:"short", day:"numeric"
+        });
+      }
+      setInterval(updateLocalClock, 1000);
+      updateLocalClock();
+
+      // ===== Time zones (BIG LIST) =====
+      const TIMEZONES = [
+        // US/Canada
+        "America/Anchorage","America/Los_Angeles","America/Vancouver","America/Denver","America/Phoenix",
+        "America/Chicago","America/Toronto","America/New_York","America/Halifax","America/St_Johns",
+        // Mexico/Central/South
+        "America/Mexico_City","America/Guatemala","America/Bogota","America/Lima","America/Santiago",
+        "America/Argentina/Buenos_Aires","America/Sao_Paulo",
+        // Europe
+        "Europe/London","Europe/Dublin","Europe/Paris","Europe/Berlin","Europe/Rome","Europe/Madrid",
+        "Europe/Amsterdam","Europe/Stockholm","Europe/Warsaw","Europe/Athens","Europe/Istanbul",
+        "Europe/Moscow",
+        // Africa
+        "Africa/Cairo","Africa/Johannesburg","Africa/Nairobi",
+        // Asia
+        "Asia/Dubai","Asia/Tehran","Asia/Karachi","Asia/Kolkata","Asia/Dhaka","Asia/Bangkok",
+        "Asia/Singapore","Asia/Hong_Kong","Asia/Shanghai","Asia/Taipei","Asia/Seoul","Asia/Tokyo",
+        // Oceania
+        "Australia/Perth","Australia/Adelaide","Australia/Sydney","Pacific/Auckland","Pacific/Honolulu"
+      ];
+
+      const tzSelect = $("tzSelect");
+      const tzTime = $("tzTime");
+      const tzDate = $("tzDate");
+
+      for (const tz of TIMEZONES){
+        const opt = document.createElement("option");
+        opt.value = tz;
+        opt.textContent = tz;
+        tzSelect.appendChild(opt);
+      }
+
+      // default to LA if available
+      tzSelect.value = TIMEZONES.includes("America/Los_Angeles") ? "America/Los_Angeles" : TIMEZONES[0];
+
+      function updateTzClock(){
+        const tz = tzSelect.value;
+        const now = new Date();
+        try{
+          tzTime.textContent = now.toLocaleTimeString(undefined, { timeZone: tz });
+          tzDate.textContent = now.toLocaleDateString(undefined, {
+            timeZone: tz, weekday:"long", year:"numeric", month:"short", day:"numeric"
+          });
+        }catch(e){
+          tzTime.textContent = "Time zone not supported";
+          tzDate.textContent = "";
+        }
+      }
+      tzSelect.addEventListener("change", updateTzClock);
+      setInterval(updateTzClock, 1000);
+      updateTzClock();
+
+      // ===== Timer =====
+      const alarm = $("alarmSound");
+      const preview = $("timerPreview");
+      const display = $("timerDisplay");
+      const hint = $("timerHint");
+
+      const setBtn = $("setBtn");
+      const startBtn = $("startBtn");
+      const pauseBtn = $("pauseBtn");
+      const resetBtn = $("resetBtn");
+
+      let timerInterval = null;
+      let remaining = 0;
+      let locked = false;
+      let running = false;
+
+      function updatePreview(){
+        const total = readInputs();
+        preview.textContent = formatHMS(total);
+        if (!locked && !running) display.textContent = formatHMS(total);
+      }
+
+      ["hours","minutes","seconds"].forEach(id=>{
+        $(id).addEventListener("input", updatePreview);
+      });
+      updatePreview();
+
+      setBtn.addEventListener("click", ()=>{
+        remaining = readInputs();
+        locked = true;
+        running = false;
+        clearInterval(timerInterval);
+        timerInterval = null;
+        display.textContent = formatHMS(remaining);
+        hint.textContent = remaining > 0 ? "Locked in. Press Start." : "Set a time above 00:00:00.";
+      });
+
+      startBtn.addEventListener("click", ()=>{
+        if (!locked){
+          remaining = readInputs();
+        }
+        if (remaining <= 0){
+          hint.textContent = "Timer is 0. Example: 00 00 07 → Set → Start.";
+          return;
+        }
+        if (running) return;
+
+        running = true;
+        hint.textContent = "Running...";
+
+        clearInterval(timerInterval);
+        timerInterval = setInterval(()=>{
+          remaining--;
+          display.textContent = formatHMS(remaining);
+
+          if (remaining <= 0){
+            clearInterval(timerInterval);
+            timerInterval = null;
+            running = false;
+            locked = false;
+            display.textContent = "00:00:00";
+            hint.textContent = "DONE ✅";
+
+            // play alarm if there is a source loaded
+            try { alarm.currentTime = 0; alarm.play(); } catch(e){}
+          }
+        }, 1000);
+      });
+
+      pauseBtn.addEventListener("click", ()=>{
+        if (!running) return;
+        running = false;
+        clearInterval(timerInterval);
+        timerInterval = null;
+        hint.textContent = "Paused. Press Start to continue.";
+      });
+
+      resetBtn.addEventListener("click", ()=>{
+        running = false;
+        locked = false;
+        clearInterval(timerInterval);
+        timerInterval = null;
+        remaining = 0;
+
+        display.textContent = "00:00:00";
+        preview.textContent = "00:00:00";
+        hint.textContent = "Reset. Type time → Set → Start.";
+
+        $("hours").value = "";
+        $("minutes").value = "";
+        $("seconds").value = "";
+      });
+
+    });
+  </script>
 </body>
 </html>
