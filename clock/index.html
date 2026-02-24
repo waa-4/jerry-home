@@ -13,26 +13,46 @@
 <div class="container">
   <h1>JERRY CLOCK</h1>
 
-  <!-- CLOCK -->
-  <div class="clock" id="clock">00:00:00</div>
+  <!-- CLOCK + TIMEZONE -->
+  <div class="tz-row">
+    <div class="tz-clock">
+      <div class="tz-title">Local Time</div>
+      <div class="clock" id="clock">00:00:00</div>
+      <div class="tz-sub" id="clockDate">---</div>
+    </div>
+
+    <div class="tz-panel">
+      <div class="tz-title">Time Zone</div>
+      <select id="tzSelect"></select>
+      <div class="tz-sub">Selected:</div>
+      <div class="tz-time" id="tzTime">--:--:--</div>
+      <div class="tz-sub" id="tzDate">---</div>
+    </div>
+  </div>
 
   <!-- TIMER -->
   <div class="timer-section">
-    <h2>Set Timer</h2>
+    <h2>Countdown Timer</h2>
 
     <div class="inputs">
-      <input type="number" id="hours" placeholder="HH" min="0">
+      <input type="number" id="hours" placeholder="HH" min="0" max="99">
       <input type="number" id="minutes" placeholder="MM" min="0" max="59">
       <input type="number" id="seconds" placeholder="SS" min="0" max="59">
     </div>
 
+    <div class="preview-line">
+      Preview: <span id="timerPreview">00:00:00</span>
+    </div>
+
     <div class="buttons">
-      <button onclick="startTimer()">Start</button>
-      <button onclick="pauseTimer()">Pause</button>
-      <button onclick="resetTimer()">Reset</button>
+      <button id="setBtn">Set</button>
+      <button id="startBtn">Start</button>
+      <button id="pauseBtn">Pause</button>
+      <button id="resetBtn">Reset</button>
     </div>
 
     <div class="timer-display" id="timerDisplay">00:00:00</div>
+    <div class="tz-sub" id="timerHint">Tip: Click Set, then Start.</div>
   </div>
 </div>
 
