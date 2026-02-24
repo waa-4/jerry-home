@@ -16,5 +16,13 @@ window.JERRY_PLUGINS = [
     icon: "🗺",
     description: "You can create a map with this for free! :D",
     href: "./mapmaker/" // you can point anywhere
-  }
+  },
+
+  {
+  id: "jerry-clock",
+  title: "JERRY Clock",
+  icon: "🕒",
+  description: "Digital clock + timer in hacker mode.",
+  href: "./clock/"
+}
 ];
