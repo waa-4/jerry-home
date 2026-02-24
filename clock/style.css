@@ -72,3 +72,55 @@ h1 {
   .clock { font-size: 2.5rem; }
   .timer-display { font-size: 2rem; }
 }
+
+.tz-row{
+  display:flex;
+  justify-content:center;
+  gap:18px;
+  flex-wrap:wrap;
+  margin-top: 10px;
+}
+
+.tz-clock, .tz-panel{
+  width: min(420px, 92vw);
+  padding: 14px;
+  border: 2px solid cyan;
+  border-radius: 16px;
+  background: rgba(0,0,0,0.55);
+  box-shadow: 0 0 18px rgba(0,255,255,0.25);
+}
+
+.tz-title{
+  font-size: 1.1rem;
+  opacity: 0.9;
+  margin-bottom: 8px;
+}
+
+.tz-sub{
+  opacity: 0.8;
+  margin-top: 6px;
+}
+
+.tz-time{
+  font-size: 2.2rem;
+  text-shadow: 0 0 18px cyan;
+}
+
+select#tzSelect{
+  width: 100%;
+  padding: 10px;
+  background: black;
+  border: 2px solid cyan;
+  color: cyan;
+  font-family: 'Courier New', monospace;
+  font-size: 1rem;
+  border-radius: 10px;
+}
+.preview-line{
+  margin-top: 12px;
+  opacity: 0.9;
+}
+.preview-line span{
+  font-weight: bold;
+  text-shadow: 0 0 12px cyan;
+}
