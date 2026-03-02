@@ -19,7 +19,7 @@ window.JERRY_PLUGINS = [
   },
 
   {
-    id: "postermaker",
+    id: "poster-maker",
     title: "Poster Maker",
     icon: "📜",
     description: "POSTER CREATOR :o",
