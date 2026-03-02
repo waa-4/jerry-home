@@ -23,7 +23,7 @@ window.JERRY_PLUGINS = [
     title: "Poster Maker",
     icon: "📜",
     description: "POSTER CREATOR :o",
-    href: "./postermaker/" // you can point anywhere
+    href: "./posterlab/" // you can point anywhere
   },
   
   {
