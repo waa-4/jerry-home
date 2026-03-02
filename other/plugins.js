@@ -19,6 +19,14 @@ window.JERRY_PLUGINS = [
   },
 
   {
+    id: "postermaker",
+    title: "Poster Maker",
+    icon: "📜",
+    description: "POSTER CREATOR :o",
+    href: "./postermaker/" // you can point anywhere
+  },
+  
+  {
   id: "jerry-clock",
   title: "JERRY Clock",
   icon: "🕒",
