@@ -1,1 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>JERRY Poster Lab</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">J</div>
+        <div class="titles">
+          <div class="h1">JERRY Poster Lab</div>
+          <div class="h2">Simple editor • cyan glow</div>
+        </div>
+      </div>
 
+      <div class="top-actions">
+        <button id="btnNew" class="btn">New</button>
+        <label class="btn file">
+          Import Image
+          <input id="importAsCanvas" type="file" accept="image/*" />
+        </label>
+        <button id="btnPNG" class="btn primary">Download PNG</button>
+        <button id="btnJPG" class="btn">Download JPG</button>
+      </div>
+    </header>
+
+    <main class="main">
+      <aside class="panel">
+        <div class="panelCard">
+          <div class="sectionTitle">Canvas</div>
+
+          <div class="row">
+            <label class="label">Preset</label>
+            <select id="preset" class="select">
+              <option value="1080x1080">Instagram Post (1080×1080)</option>
+              <option value="1280x720">YouTube Thumbnail (1280×720)</option>
+              <option value="1920x1080">HD (1920×1080)</option>
+              <option value="2480x3508">Poster A4 @300dpi (2480×3508)</option>
+              <option value="custom">Custom…</option>
+            </select>
+          </div>
+
+          <div id="customSize" class="row two" style="display:none;">
+            <div>
+              <label class="label">W</label>
+              <input id="customW" class="input" type="number" min="1" value="1280">
+            </div>
+            <div>
+              <label class="label">H</label>
+              <input id="customH" class="input" type="number" min="1" value="720">
+            </div>
+          </div>
+
+          <div class="row">
+            <label class="label">Background</label>
+            <input id="bgColor" class="color" type="color" value="#ffffff" />
+          </div>
+
+          <button id="btnApplySize" class="btn wide">Apply Size</button>
+        </div>
+
+        <div class="panelCard">
+          <div class="sectionTitle">Tools</div>
+
+          <div class="toolGrid">
+            <button id="toolDraw" class="btn tool active">✍ Draw</button>
+            <button id="toolText" class="btn tool">🅰 Text</button>
+
+            <label class="btn tool file">
+              🖼 Stamp Image
+              <input id="stampImage" type="file" accept="image/*" />
+            </label>
+
+            <button id="toolEraser" class="btn tool">🧽 Eraser</button>
+          </div>
+
+          <div class="row">
+            <label class="label">Brush</label>
+            <input id="brushSize" class="range" type="range" min="1" max="48" value="8" />
+          </div>
+
+          <div class="row">
+            <label class="label">Ink</label>
+            <input id="inkColor" class="color" type="color" value="#00ffe1" />
+          </div>
+
+          <div class="row two">
+            <div>
+              <label class="label">Text Size</label>
+              <input id="textSize" class="input" type="number" min="8" max="220" value="48">
+            </div>
+            <div>
+              <label class="label">Font</label>
+              <select id="font" class="select">
+                <option value="system-ui">System</option>
+                <option value="monospace" selected>Monospace</option>
+                <option value="Arial">Arial</option>
+                <option value="Impact">Impact</option>
+                <option value="Georgia">Georgia</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="hint">
+            <b>How it works:</b><br>
+            • Draw/Eraser: click + drag<br>
+            • Text: click canvas to place<br>
+            • Stamp: upload, then click canvas to place
+          </div>
+        </div>
+
+        <div class="panelCard">
+          <div class="sectionTitle">Quick</div>
+          <button id="btnClear" class="btn wide danger">Clear Canvas</button>
+        </div>
+      </aside>
+
+      <section class="stage">
+        <div class="stageWrap">
+          <canvas id="canvas"></canvas>
+          <div id="toast" class="toast">Ready.</div>
+        </div>
+      </section>
+    </main>
+
+    <div id="newModal" class="modal" style="display:none;">
+      <div class="modalCard">
+        <div class="modalTitle">Start a new canvas?</div>
+        <div class="modalSub">This will clear your current work.</div>
+        <div class="modalActions">
+          <button id="modalCancel" class="btn">Cancel</button>
+          <button id="modalConfirm" class="btn primary">New Canvas</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./script.js"></script>
+</body>
+</html>
