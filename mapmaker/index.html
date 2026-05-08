@@ -3,830 +3,1817 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>JERRY Map Creator</title>
+<title>🗺️ JERRY Map Creator</title>
+
 <style>
-  :root{
-    --cyan:#00ffe1;
-    --bg:#05070a;
-    --panel:rgba(8,10,14,.82);
-    --stroke:rgba(0,255,225,.28);
-    --soft:rgba(0,255,225,.12);
-    --text:#dff;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0; height:100vh; overflow:hidden;
-    background: radial-gradient(1200px 700px at 50% 115%, rgba(0,255,225,.18), transparent 55%),
-                #000;
-    color:var(--text);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+:root{
+  --cyan:#00ffe1;
+  --cyanGlow:rgba(0,255,225,0.55);
+  --panel:rgba(0,0,0,0.76);
+  --text:#eaffff;
+  --muted:#8feee4;
+  --stroke:rgba(0,255,225,0.42);
+  --radius:18px;
+  --mono:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+html,body{
+  margin:0;
+  height:100%;
+  background:#000;
+  color:var(--cyan);
+  font-family:var(--mono);
+  overflow:hidden;
+}
+
+#matrix{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:-5;
+}
+
+#darkWash{
+  position:fixed;
+  inset:0;
+  z-index:-4;
+  background:
+    radial-gradient(circle at top, rgba(0,255,225,0.11), transparent 35%),
+    linear-gradient(to bottom, rgba(0,0,0,0.08), rgba(0,0,0,0.94));
+  pointer-events:none;
+}
+
+#bottomGlow{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  height:260px;
+  background:linear-gradient(to top, rgba(0,255,225,0.25), rgba(0,255,225,0.1), transparent);
+  z-index:-3;
+  pointer-events:none;
+}
+
+.page{
+  width:min(1380px, calc(100% - 24px));
+  height:100vh;
+  margin:0 auto;
+  padding:12px 0;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  gap:10px;
+}
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.brand h1{
+  margin:0;
+  font-size:clamp(24px,4vw,42px);
+  color:var(--cyan);
+  text-shadow:0 0 24px var(--cyanGlow);
+}
+
+.brand span{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.navLinks{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.navLinks a,
+.navLinks button{
+  color:var(--text);
+  text-decoration:none;
+  border:1px solid var(--stroke);
+  background:rgba(0,0,0,0.5);
+  padding:9px 12px;
+  border-radius:999px;
+  transition:0.18s;
+  font-family:var(--mono);
+  cursor:pointer;
+}
+
+.navLinks a:hover,
+.navLinks button:hover{
+  color:#000;
+  background:var(--cyan);
+  box-shadow:0 0 18px var(--cyanGlow);
+}
+
+.app{
+  min-height:0;
+  display:grid;
+  grid-template-columns:300px 1fr 300px;
+  gap:10px;
+}
+
+.panel{
+  min-height:0;
+  overflow:auto;
+  background:
+    linear-gradient(180deg, rgba(0,255,225,0.06), transparent),
+    var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  padding:12px;
+  box-shadow:0 0 20px rgba(0,255,225,0.14);
+}
+
+.panel h2{
+  margin:0 0 10px;
+  font-size:16px;
+  color:var(--cyan);
+  text-shadow:0 0 12px var(--cyanGlow);
+}
+
+.panel p,
+.panel label,
+.smallNote{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+}
+
+label{
+  display:block;
+  margin:10px 0 6px;
+}
+
+button,
+input,
+select,
+textarea{
+  width:100%;
+  background:rgba(0,0,0,0.72);
+  color:inherit;
+  border:1px solid currentColor;
+  border-radius:12px;
+  padding:9px 10px;
+  font-family:var(--mono);
+  outline:none;
+}
+
+button{
+  cursor:pointer;
+  transition:0.16s;
+}
+
+button:hover{
+  background:currentColor;
+  color:black;
+  box-shadow:0 0 16px currentColor;
+}
+
+button.active{
+  background:var(--cyan);
+  color:#000;
+  box-shadow:0 0 18px var(--cyanGlow);
+}
+
+textarea{
+  height:150px;
+  resize:vertical;
+  color:var(--text);
+}
+
+.toolGrid,
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.stage{
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.canvasPanel{
+  flex:1;
+  min-height:0;
+  background:
+    radial-gradient(circle at center, rgba(0,255,225,0.05), transparent 55%),
+    rgba(0,0,0,0.72);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  box-shadow:0 0 24px rgba(0,255,225,0.14);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  padding:10px;
+}
+
+#mapCanvas{
+  width:100%;
+  height:100%;
+  border:1px solid var(--cyan);
+  border-radius:14px;
+  background:#061018;
+  box-shadow:0 0 24px rgba(0,255,225,0.22);
+  touch-action:none;
+  cursor:crosshair;
+}
+
+.statusBar{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  align-items:center;
+}
+
+.status{
+  color:var(--muted);
+  font-size:12px;
+  padding:9px 12px;
+  background:rgba(0,0,0,0.65);
+  border:1px solid rgba(0,255,225,0.25);
+  border-radius:999px;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+.palette{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:8px;
+}
+
+.tileSwatch{
+  height:44px;
+  border-radius:12px;
+  border:1px solid rgba(0,255,225,0.28);
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+  box-shadow:0 0 10px rgba(0,255,225,0.1);
+}
+
+.tileSwatch.active{
+  outline:2px solid var(--cyan);
+  box-shadow:0 0 18px var(--cyanGlow);
+}
+
+.tileSwatch span{
+  position:absolute;
+  left:4px;
+  bottom:3px;
+  right:4px;
+  font-size:9px;
+  color:white;
+  text-shadow:0 1px 3px #000;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.objectList{
+  display:grid;
+  gap:6px;
+  max-height:160px;
+  overflow:auto;
+}
+
+.objectItem{
+  border:1px solid rgba(0,255,225,0.22);
+  background:rgba(0,0,0,0.42);
+  border-radius:12px;
+  padding:8px;
+  color:var(--muted);
+  cursor:pointer;
+  font-size:12px;
+}
+
+.objectItem.active{
+  color:var(--cyan);
+  border-color:var(--cyan);
+  box-shadow:0 0 12px rgba(0,255,225,0.2);
+}
+
+#toast{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%) translateY(20px);
+  opacity:0;
+  z-index:60;
+  background:rgba(0,0,0,0.78);
+  color:var(--cyan);
+  border:1px solid currentColor;
+  box-shadow:0 0 18px currentColor;
+  padding:10px 14px;
+  border-radius:999px;
+  transition:0.2s;
+  pointer-events:none;
+}
+
+#toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+@media(max-width:1100px){
+  html,body{
+    overflow:auto;
   }
 
-  /* Matrix-ish animated background */
-  #matrix{
-    position:fixed; inset:0; z-index:-3;
-    filter: saturate(1.2) contrast(1.05);
-  }
-  #bottomGlow{
-    position:fixed; left:0; right:0; bottom:0; height:220px;
-    background: linear-gradient(to top, rgba(0,255,225,.26), transparent);
-    z-index:-2;
-    pointer-events:none;
+  .page{
+    height:auto;
   }
 
-  .ui{
-    position:fixed; top:12px; left:12px; right:12px;
-    display:grid; grid-template-columns: 360px 1fr 360px;
-    gap:12px;
-    z-index:5;
-    pointer-events:none;
-  }
-  .panel{
-    pointer-events:auto;
-    background:var(--panel);
-    border:1px solid var(--stroke);
-    border-radius:16px;
-    padding:12px;
-    box-shadow: 0 0 18px rgba(0,255,225,.12);
-    backdrop-filter: blur(6px);
-  }
-  .panel h2{
-    margin:0 0 10px 0;
-    font-size:14px;
-    letter-spacing:.08em;
-    color:var(--cyan);
-    text-shadow: 0 0 12px rgba(0,255,225,.45);
-  }
-  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-  .row + .row{margin-top:10px}
-  button, select, input{
-    font-family:inherit;
-    border-radius:12px;
-    border:1px solid var(--stroke);
-    background: rgba(10,16,20,.85);
-    color:var(--text);
-    padding:10px 12px;
-    outline:none;
-  }
-  button{
-    cursor:pointer;
-    transition:.15s transform,.15s box-shadow;
-    box-shadow: 0 0 0 rgba(0,255,225,0);
-  }
-  button:hover{transform:translateY(-1px); box-shadow:0 0 18px rgba(0,255,225,.18)}
-  button.primary{background: rgba(0,140,120,.62)}
-  button.danger{background: rgba(150,30,60,.45)}
-  button.ghost{background: rgba(10,16,20,.35)}
-  .pill{
-    padding:6px 10px;
-    border-radius:999px;
-    border:1px solid var(--stroke);
-    background: rgba(0,255,225,.07);
-    font-size:12px;
-    opacity:.95;
+  .app{
+    grid-template-columns:1fr;
   }
 
-  #canvasWrap{
-    position:fixed; inset:0;
-    display:flex; align-items:center; justify-content:center;
+  .canvasPanel{
+    min-height:560px;
   }
-  #mapCanvas{
-    width:min(92vw, 1100px);
-    height:min(82vh, 780px);
-    border-radius:18px;
-    border:1px solid rgba(0,255,225,.35);
-    background: rgba(0,0,0,.35);
-    box-shadow: 0 0 30px rgba(0,255,225,.16);
-    touch-action:none; /* allow drawing on mobile */
+
+  .statusBar{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:580px){
+  .toolGrid,
+  .row{
+    grid-template-columns:1fr;
   }
 
   .palette{
-    display:grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap:8px;
-  }
-  .swatch{
-    width:100%; height:34px;
-    border-radius:10px;
-    border:1px solid rgba(255,255,255,.15);
-    cursor:pointer;
-    position:relative;
-  }
-  .swatch.sel::after{
-    content:"";
-    position:absolute; inset:-2px;
-    border-radius:12px;
-    border:2px solid var(--cyan);
-    box-shadow: 0 0 12px rgba(0,255,225,.25);
-    pointer-events:none;
+    grid-template-columns:repeat(3, 1fr);
   }
 
-  .kbd{opacity:.9; font-size:12px; line-height:1.4}
-  .small{font-size:12px; opacity:.9}
-  .split{display:flex; justify-content:space-between; gap:12px; align-items:center}
-  textarea{
-    width:100%; height:160px; resize:none;
-    border-radius:12px;
-    border:1px solid var(--stroke);
-    background: rgba(10,16,20,.65);
-    color:var(--text);
-    padding:10px;
+  .canvasPanel{
+    min-height:420px;
   }
-
-  /* Right panel: selected object controls */
-  .field{display:flex; gap:10px; align-items:center}
-  .field label{font-size:12px; opacity:.9; width:80px}
-  .field input[type="range"]{width:100%}
+}
 </style>
 </head>
+
 <body>
 <canvas id="matrix"></canvas>
+<div id="darkWash"></div>
 <div id="bottomGlow"></div>
+<div id="toast">Ready.</div>
 
-<div class="ui">
-  <!-- Left panel -->
-  <div class="panel" id="toolsPanel">
-    <h2>TOOLS</h2>
+<div class="page">
 
-    <div class="row">
-      <button class="primary" id="toolPaint">Paint</button>
-      <button id="toolErase">Erase</button>
-      <button id="toolMarkerCircle">Circle</button>
-      <button id="toolMarkerSquare">Square</button>
-      <button id="toolLabel">Text</button>
-      <span class="pill" id="modePill">Mode: Paint</span>
+  <header class="topbar">
+    <div class="brand">
+      <h1>🗺️ JERRY Map Creator</h1>
+      <span>tile maps • markers • labels • islands • weird worlds</span>
     </div>
 
-    <div class="row">
-      <span class="pill">Brush</span>
-      <input id="brushSize" type="range" min="1" max="16" value="5" />
-      <span class="pill" id="brushRead">5</span>
-      <span class="pill">Grid</span>
+    <nav class="navLinks">
+      <a href="../">JERRY Tools</a>
+      <button id="downloadBtn">Download PNG</button>
+    </nav>
+  </header>
+
+  <main class="app">
+
+    <aside class="panel">
+      <h2>Tools</h2>
+
+      <div class="toolGrid">
+        <button class="toolBtn active" data-tool="paint">Paint</button>
+        <button class="toolBtn" data-tool="erase">Erase</button>
+        <button class="toolBtn" data-tool="fill">Bucket</button>
+        <button class="toolBtn" data-tool="pick">Pick</button>
+        <button class="toolBtn" data-tool="pan">Pan</button>
+        <button class="toolBtn" data-tool="select">Select</button>
+      </div>
+
+      <h2 style="margin-top:14px;">Objects</h2>
+      <div class="toolGrid">
+        <button class="toolBtn" data-tool="circle">Circle</button>
+        <button class="toolBtn" data-tool="square">Square</button>
+        <button class="toolBtn" data-tool="label">Text</button>
+        <button id="deleteSelectedBtn">Delete Sel</button>
+      </div>
+
+      <label>Brush Size: <span id="brushRead">3</span></label>
+      <input id="brushSize" type="range" min="1" max="16" value="3" />
+
+      <label>Map Size</label>
       <select id="gridSize">
-        <option value="32">32x32</option>
-        <option value="48">48x48</option>
-        <option value="64" selected>64x64</option>
-        <option value="80">80x80</option>
-        <option value="100">100x100</option>
+        <option value="32">32×32</option>
+        <option value="48">48×48</option>
+        <option value="64" selected>64×64</option>
+        <option value="80">80×80</option>
+        <option value="100">100×100</option>
       </select>
-    </div>
 
-    <div class="row">
-      <button class="primary" id="btnAuto">Auto-Generate</button>
-      <button id="btnClear">Clear</button>
-      <button id="btnUndo">Undo</button>
-      <button id="btnRedo">Redo</button>
-    </div>
-
-    <div class="row" style="align-items:flex-start">
-      <div style="flex:1">
-        <div class="small" style="margin-bottom:6px;color:var(--cyan)">Land Palette</div>
-        <div class="palette" id="palette"></div>
+      <div class="row" style="margin-top:8px;">
+        <button id="applyGridBtn">Apply Size</button>
+        <button id="resetViewBtn">Reset View</button>
       </div>
-    </div>
 
-    <div class="row kbd">
-      <div>
-        <div>• Drag = paint/move</div>
-        <div>• Click object = select</div>
-        <div>• <b>Del</b> = delete selected</div>
-        <div>• <b>Ctrl+Z</b> undo, <b>Ctrl+Y</b> redo</div>
-        <div>• Mouse wheel on selected = resize</div>
-      </div>
-    </div>
-  </div>
+      <h2 style="margin-top:14px;">Tiles</h2>
+      <select id="palettePreset">
+        <option value="classic">Classic Island</option>
+        <option value="dark">Dark Realm</option>
+        <option value="snow">Snow</option>
+        <option value="rust">RustWorld</option>
+      </select>
 
-  <!-- Center spacer -->
-  <div></div>
+      <div class="palette" id="palette"></div>
 
-  <!-- Right panel -->
-  <div class="panel" id="dataPanel">
-    <h2>EXPORT / IMPORT</h2>
-    <div class="row">
-      <button class="primary" id="btnExport">Export JSON</button>
-      <button id="btnImport">Import JSON</button>
-      <button class="ghost" id="btnCopy">Copy</button>
-    </div>
-    <div class="row">
-      <textarea id="jsonBox" spellcheck="false" placeholder="Exported JSON appears here..."></textarea>
-    </div>
-
-    <h2 style="margin-top:12px">SELECTED</h2>
-    <div id="selNone" class="small">Nothing selected.</div>
-    <div id="selBox" style="display:none">
-      <div class="field"><label>Type</label><span class="pill" id="selType"></span></div>
-      <div class="field"><label>Color</label><input id="selColor" type="color" value="#00ffe1"></div>
-      <div class="field"><label>Size</label><input id="selSize" type="range" min="6" max="120" value="30"></div>
-      <div class="field"><label>Text</label><input id="selText" type="text" placeholder="Label text"></div>
+      <h2 style="margin-top:14px;">Generate</h2>
       <div class="row">
-        <button class="danger" id="btnDeleteSel">Delete</button>
+        <button id="autoIslandBtn">Island</button>
+        <button id="autoCavesBtn">Caves</button>
       </div>
-    </div>
-  </div>
-</div>
 
-<div id="canvasWrap">
-  <canvas id="mapCanvas" width="1100" height="780"></canvas>
+      <div class="row" style="margin-top:8px;">
+        <button id="clearBtn">Clear</button>
+        <button id="fillAllBtn">Fill All</button>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <button id="undoBtn">Undo</button>
+        <button id="redoBtn">Redo</button>
+      </div>
+
+      <p class="smallNote">
+        Tip: wheel zooms. Pan tool drags the map. Right-click erases.
+      </p>
+    </aside>
+
+    <section class="stage">
+      <div class="canvasPanel">
+        <canvas id="mapCanvas"></canvas>
+      </div>
+
+      <div class="statusBar">
+        <div class="status" id="status">Tool: Paint • Grid 64×64</div>
+        <div class="row">
+          <button id="toggleGridBtn" class="active">Grid ON</button>
+          <button id="toggleCoastBtn" class="active">Coast Glow ON</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <h2>Selected Object</h2>
+
+      <div id="selectedEmpty" class="smallNote">Nothing selected.</div>
+
+      <div id="selectedBox" style="display:none;">
+        <label>Type</label>
+        <input id="selType" readonly />
+
+        <label>Color</label>
+        <input id="selColor" type="color" value="#00ffe1" />
+
+        <label>Size: <span id="selSizeRead">32</span></label>
+        <input id="selSize" type="range" min="8" max="160" value="32" />
+
+        <label>Text</label>
+        <input id="selText" type="text" placeholder="Label text" />
+
+        <button id="focusSelectedBtn" style="margin-top:8px;">Focus Selected</button>
+      </div>
+
+      <h2 style="margin-top:14px;">Objects</h2>
+      <div id="objectList" class="objectList"></div>
+
+      <h2 style="margin-top:14px;">Import / Export</h2>
+      <div class="row">
+        <button id="exportBtn">Export</button>
+        <button id="importBtn">Import</button>
+      </div>
+
+      <button id="copyBtn" style="margin-top:8px;">Copy JSON</button>
+
+      <textarea id="jsonBox" spellcheck="false" placeholder="Exported map JSON appears here..."></textarea>
+
+      <div class="row" style="margin-top:8px;">
+        <button id="saveLocalBtn">Save Local</button>
+        <button id="loadLocalBtn">Load Local</button>
+      </div>
+    </aside>
+
+  </main>
 </div>
 
 <script>
-/* ===================== MATRIX BACKGROUND ===================== */
-(() => {
-  const c = document.getElementById("matrix");
-  const ctx = c.getContext("2d");
-  const chars = "01<>/=+ -JERRY";
-  let w,h,cols,drops,size=16;
+/* =========================
+   MATRIX BACKGROUND
+========================= */
+const matrix = document.getElementById("matrix");
+const mctx = matrix.getContext("2d");
+const matrixChars = "01<>/=+-JERRYMAP";
+const matrixSize = 16;
+let matrixDrops = [];
 
-  function resize(){
-    w = c.width = innerWidth;
-    h = c.height = innerHeight;
-    cols = Math.floor(w/size);
-    drops = new Array(cols).fill(1);
-  }
-  addEventListener("resize", resize);
-  resize();
+function resizeMatrix(){
+  matrix.width = innerWidth;
+  matrix.height = innerHeight;
+  matrixDrops = Array(Math.floor(matrix.width / matrixSize)).fill(1);
+}
 
-  setInterval(() => {
-    ctx.fillStyle = "rgba(0,0,0,0.08)";
-    ctx.fillRect(0,0,w,h);
-    ctx.fillStyle = "rgba(0,255,225,0.7)";
-    ctx.font = size+"px monospace";
-    for(let i=0;i<drops.length;i++){
-      const ch = chars[Math.floor(Math.random()*chars.length)];
-      ctx.fillText(ch, i*size, drops[i]*size);
-      if(drops[i]*size > h && Math.random() > 0.975) drops[i] = 0;
-      drops[i]++;
+resizeMatrix();
+addEventListener("resize", resizeMatrix);
+
+function drawMatrix(){
+  mctx.fillStyle = "rgba(0,0,0,0.08)";
+  mctx.fillRect(0,0,matrix.width,matrix.height);
+  mctx.fillStyle = getComputedStyle(document.body).color;
+  mctx.font = matrixSize + "px monospace";
+
+  for(let i = 0; i < matrixDrops.length; i++){
+    const ch = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+    mctx.fillText(ch, i * matrixSize, matrixDrops[i] * matrixSize);
+
+    if(matrixDrops[i] * matrixSize > matrix.height && Math.random() > 0.975){
+      matrixDrops[i] = 0;
     }
-  }, 33);
-})();
 
-/* ===================== MAP CREATOR CORE ===================== */
+    matrixDrops[i]++;
+  }
+}
+
+setInterval(drawMatrix, 33);
+
+/* =========================
+   ELEMENTS
+========================= */
 const canvas = document.getElementById("mapCanvas");
 const ctx = canvas.getContext("2d");
 
-const ui = {
-  modePill: document.getElementById("modePill"),
-  brushSize: document.getElementById("brushSize"),
-  brushRead: document.getElementById("brushRead"),
-  gridSize: document.getElementById("gridSize"),
-  palette: document.getElementById("palette"),
-  jsonBox: document.getElementById("jsonBox"),
-  selNone: document.getElementById("selNone"),
-  selBox: document.getElementById("selBox"),
-  selType: document.getElementById("selType"),
-  selColor: document.getElementById("selColor"),
-  selSize: document.getElementById("selSize"),
-  selText: document.getElementById("selText"),
+const status = document.getElementById("status");
+const toast = document.getElementById("toast");
+
+const brushSize = document.getElementById("brushSize");
+const brushRead = document.getElementById("brushRead");
+const gridSize = document.getElementById("gridSize");
+const applyGridBtn = document.getElementById("applyGridBtn");
+const resetViewBtn = document.getElementById("resetViewBtn");
+
+const palettePreset = document.getElementById("palettePreset");
+const palette = document.getElementById("palette");
+
+const autoIslandBtn = document.getElementById("autoIslandBtn");
+const autoCavesBtn = document.getElementById("autoCavesBtn");
+const clearBtn = document.getElementById("clearBtn");
+const fillAllBtn = document.getElementById("fillAllBtn");
+const undoBtn = document.getElementById("undoBtn");
+const redoBtn = document.getElementById("redoBtn");
+
+const toggleGridBtn = document.getElementById("toggleGridBtn");
+const toggleCoastBtn = document.getElementById("toggleCoastBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+
+const selectedEmpty = document.getElementById("selectedEmpty");
+const selectedBox = document.getElementById("selectedBox");
+const selType = document.getElementById("selType");
+const selColor = document.getElementById("selColor");
+const selSize = document.getElementById("selSize");
+const selSizeRead = document.getElementById("selSizeRead");
+const selText = document.getElementById("selText");
+const focusSelectedBtn = document.getElementById("focusSelectedBtn");
+const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+const objectList = document.getElementById("objectList");
+
+const exportBtn = document.getElementById("exportBtn");
+const importBtn = document.getElementById("importBtn");
+const copyBtn = document.getElementById("copyBtn");
+const jsonBox = document.getElementById("jsonBox");
+const saveLocalBtn = document.getElementById("saveLocalBtn");
+const loadLocalBtn = document.getElementById("loadLocalBtn");
+
+/* =========================
+   STATE
+========================= */
+const PALETTES = {
+  classic: [
+    {name:"Water", color:"#10293d"},
+    {name:"Deep", color:"#081727"},
+    {name:"Sand", color:"#c2b280"},
+    {name:"Grass", color:"#4a8b47"},
+    {name:"Forest", color:"#214d35"},
+    {name:"Rock", color:"#565866"},
+    {name:"Mountain", color:"#30313a"},
+    {name:"Corrupt", color:"#9a2a4a"}
+  ],
+  dark: [
+    {name:"Void", color:"#070811"},
+    {name:"Abyss", color:"#11152a"},
+    {name:"Ash", color:"#33313d"},
+    {name:"Purple", color:"#3b1d5d"},
+    {name:"Glow", color:"#6f2dbd"},
+    {name:"Bone", color:"#cfc7b8"},
+    {name:"Blood", color:"#7a1030"},
+    {name:"Black", color:"#000000"}
+  ],
+  snow: [
+    {name:"Water", color:"#15344e"},
+    {name:"Ice", color:"#9bf6ff"},
+    {name:"Snow", color:"#ffffff"},
+    {name:"Pale", color:"#d8f3dc"},
+    {name:"Pine", color:"#1b4332"},
+    {name:"Rock", color:"#6c757d"},
+    {name:"Cliff", color:"#343a40"},
+    {name:"Magic", color:"#80ffdb"}
+  ],
+  rust: [
+    {name:"Dark", color:"#090707"},
+    {name:"Rust", color:"#7a2f12"},
+    {name:"Bucket", color:"#a45c2a"},
+    {name:"Dust", color:"#c07f45"},
+    {name:"Acid", color:"#9cff33"},
+    {name:"Iron", color:"#3f3f46"},
+    {name:"Storm", color:"#503050"},
+    {name:"Glow", color:"#00ffe1"}
+  ]
 };
 
-const MODES = {
-  PAINT:"Paint",
-  ERASE:"Erase",
-  CIRCLE:"Circle",
-  SQUARE:"Square",
-  LABEL:"Text",
-  MOVE:"Move",
-};
-let mode = MODES.PAINT;
+let currentPalette = PALETTES.classic;
+let selectedTile = currentPalette[3];
 
-const LAND_COLORS = [
-  "#1c2e2a", // deep green
-  "#2f4a35", // forest
-  "#4a6b3f", // grass
-  "#6b8b4e", // light grass
-  "#9dbb6d", // plains
-  "#c2b280", // sand
-  "#7a6a54", // dirt
-  "#4b4b58", // rock
-  "#2b2b33", // dark rock
-  "#305a7a", // water-ish (optional land palette slot)
-  "#5d3a6a", // weird biome
-  "#9a2a4a", // corrupted
-];
-let selectedLandColor = LAND_COLORS[2];
-
-let gridN = parseInt(ui.gridSize.value, 10); // e.g. 64
-let brush = parseInt(ui.brushSize.value, 10); // in cells radius-ish
-
-// map grid: 0 = empty/water, otherwise a color string index stored
-let grid = new Array(gridN*gridN).fill(null);
-
-// objects: markers + labels
-let objects = []; // {id,type,x,y,size,color,text}
+let gridN = 64;
+let grid = [];
+let objects = [];
 let selectedId = null;
 
-// view transform (for future zoom/pan; v1 fixed)
-function toCanvasPos(clientX, clientY){
+let tool = "paint";
+let brush = Number(brushSize.value);
+let showGrid = true;
+let showCoast = true;
+
+let camera = {x:0, y:0, zoom:1};
+let dragging = false;
+let dragMode = null;
+let dragObj = null;
+let lastPointer = {x:0, y:0};
+let changedDuringDrag = false;
+
+let undoStack = [];
+let redoStack = [];
+
+/* =========================
+   INIT / CANVAS
+========================= */
+function resizeCanvas(){
   const rect = canvas.getBoundingClientRect();
-  const x = (clientX - rect.left) * (canvas.width / rect.width);
-  const y = (clientY - rect.top) * (canvas.height / rect.height);
-  return {x,y};
+  canvas.width = Math.floor(rect.width * devicePixelRatio);
+  canvas.height = Math.floor(rect.height * devicePixelRatio);
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  render();
 }
 
-function cellSize(){
+addEventListener("resize", resizeCanvas);
+setTimeout(resizeCanvas, 80);
+
+function initGrid(size){
+  gridN = size;
+  grid = Array.from({length:gridN}, () => Array(gridN).fill(null));
+  objects = [];
+  selectedId = null;
+  camera = {x:0,y:0,zoom:1};
+  undoStack = [];
+  redoStack = [];
+  pushUndo();
+  render();
+}
+
+/* =========================
+   HELPERS
+========================= */
+function showToast(message){
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(()=>{
+    toast.classList.remove("show");
+  }, 1300);
+}
+
+function mapPixelSize(){
+  return 1200;
+}
+
+function tileSize(){
+  return mapPixelSize() / gridN;
+}
+
+function screenToWorld(clientX, clientY){
+  const rect = canvas.getBoundingClientRect();
+  const sx = clientX - rect.left;
+  const sy = clientY - rect.top;
+  const cx = canvas.clientWidth / 2;
+  const cy = canvas.clientHeight / 2;
+
   return {
-    cw: canvas.width / gridN,
-    ch: canvas.height / gridN
+    x:(sx - cx) / camera.zoom + cx - camera.x,
+    y:(sy - cy) / camera.zoom + cy - camera.y
   };
 }
 
-function idx(x,y){ return y*gridN + x; }
-function inBounds(x,y){ return x>=0 && y>=0 && x<gridN && y<gridN; }
+function worldToScreen(wx, wy){
+  const cx = canvas.clientWidth / 2;
+  const cy = canvas.clientHeight / 2;
 
-/* ===== History (Undo/Redo) ===== */
-let undoStack = [];
-let redoStack = [];
+  return {
+    x:(wx + camera.x - cx) * camera.zoom + cx,
+    y:(wy + camera.y - cy) * camera.zoom + cy
+  };
+}
+
+function worldToCell(wx, wy){
+  const mapSize = mapPixelSize();
+  const offsetX = (canvas.clientWidth - mapSize) / 2;
+  const offsetY = (canvas.clientHeight - mapSize) / 2;
+  const tx = Math.floor((wx - offsetX) / tileSize());
+  const ty = Math.floor((wy - offsetY) / tileSize());
+
+  if(tx < 0 || ty < 0 || tx >= gridN || ty >= gridN) return null;
+  return {x:tx, y:ty};
+}
+
+function cellToWorld(x,y){
+  const mapSize = mapPixelSize();
+  const offsetX = (canvas.clientWidth - mapSize) / 2;
+  const offsetY = (canvas.clientHeight - mapSize) / 2;
+  const ts = tileSize();
+
+  return {
+    x:offsetX + x * ts,
+    y:offsetY + y * ts
+  };
+}
+
+function random(min,max){
+  return min + Math.random() * (max - min);
+}
+
+function newId(){
+  return "obj_" + Math.random().toString(36).slice(2,9) + "_" + Date.now();
+}
+
+/* =========================
+   HISTORY
+========================= */
 function snapshot(){
   return {
     gridN,
-    grid: grid.slice(),
+    grid: grid.map(row => row.slice()),
     objects: JSON.parse(JSON.stringify(objects)),
+    paletteName: palettePreset.value,
+    selectedTileColor:selectedTile.color,
+    showGrid,
+    showCoast
   };
 }
+
 function pushUndo(){
   undoStack.push(snapshot());
-  if(undoStack.length > 60) undoStack.shift();
-  redoStack.length = 0;
-}
-function applyState(st){
-  gridN = st.gridN;
-  ui.gridSize.value = String(gridN);
-  grid = st.grid.slice();
-  objects = JSON.parse(JSON.stringify(st.objects));
-  selectedId = null;
-  render();
-  refreshSelectionUI();
+  if(undoStack.length > 70) undoStack.shift();
+  redoStack = [];
+  updateUndoRedo();
 }
 
-/* ===== Palette UI ===== */
+function applyState(state){
+  gridN = state.gridN;
+  grid = state.grid.map(row => row.slice());
+  objects = JSON.parse(JSON.stringify(state.objects || []));
+  palettePreset.value = state.paletteName || "classic";
+  currentPalette = PALETTES[palettePreset.value] || PALETTES.classic;
+  selectedTile = currentPalette.find(t => t.color === state.selectedTileColor) || currentPalette[0];
+  showGrid = state.showGrid !== false;
+  showCoast = state.showCoast !== false;
+  gridSize.value = gridN;
+  selectedId = null;
+  buildPalette();
+  updateButtons();
+  refreshSelectedUI();
+  render();
+}
+
+function updateUndoRedo(){
+  undoBtn.disabled = undoStack.length <= 1;
+  redoBtn.disabled = redoStack.length === 0;
+}
+
+function undo(){
+  if(undoStack.length <= 1) return;
+
+  redoStack.push(undoStack.pop());
+  applyState(undoStack[undoStack.length - 1]);
+  updateUndoRedo();
+}
+
+function redo(){
+  if(redoStack.length === 0) return;
+
+  const state = redoStack.pop();
+  undoStack.push(state);
+  applyState(state);
+  updateUndoRedo();
+}
+
+/* =========================
+   PALETTE
+========================= */
 function buildPalette(){
-  ui.palette.innerHTML = "";
-  LAND_COLORS.forEach((c) => {
-    const d = document.createElement("div");
-    d.className = "swatch" + (c===selectedLandColor ? " sel":"");
-    d.style.background = c;
-    d.title = c;
-    d.onclick = () => {
-      selectedLandColor = c;
+  palette.innerHTML = "";
+
+  currentPalette.forEach(tile=>{
+    const swatch = document.createElement("div");
+    swatch.className = "tileSwatch";
+    swatch.classList.toggle("active", tile.color === selectedTile.color);
+    swatch.style.background = tile.color;
+
+    const label = document.createElement("span");
+    label.textContent = tile.name;
+    swatch.appendChild(label);
+
+    swatch.addEventListener("click", ()=>{
+      selectedTile = tile;
       buildPalette();
-    };
-    ui.palette.appendChild(d);
+    });
+
+    palette.appendChild(swatch);
   });
 }
-buildPalette();
 
-/* ===== Mode UI ===== */
-function setMode(m){
-  mode = m;
-  ui.modePill.textContent = "Mode: " + m;
-}
-document.getElementById("toolPaint").onclick = () => setMode(MODES.PAINT);
-document.getElementById("toolErase").onclick = () => setMode(MODES.ERASE);
-document.getElementById("toolMarkerCircle").onclick = () => setMode(MODES.CIRCLE);
-document.getElementById("toolMarkerSquare").onclick = () => setMode(MODES.SQUARE);
-document.getElementById("toolLabel").onclick = () => setMode(MODES.LABEL);
+palettePreset.addEventListener("change", ()=>{
+  currentPalette = PALETTES[palettePreset.value];
+  selectedTile = currentPalette[0];
+  buildPalette();
+});
 
-ui.brushSize.oninput = () => {
-  brush = parseInt(ui.brushSize.value,10);
-  ui.brushRead.textContent = brush;
-};
-
-ui.gridSize.onchange = () => {
-  pushUndo();
-  gridN = parseInt(ui.gridSize.value,10);
-  grid = new Array(gridN*gridN).fill(null);
-  render();
-};
-
-/* ===================== DRAW / ERASE LAND ===================== */
-function paintAt(px, py, colorOrNull){
-  const {cw,ch} = cellSize();
-  const cx = Math.floor(px / cw);
-  const cy = Math.floor(py / ch);
-
-  const r = brush; // in cells
-  for(let oy=-r; oy<=r; oy++){
-    for(let ox=-r; ox<=r; ox++){
-      const x = cx + ox, y = cy + oy;
-      if(!inBounds(x,y)) continue;
-      // round brush
-      if(ox*ox + oy*oy > r*r) continue;
-      grid[idx(x,y)] = colorOrNull;
-    }
-  }
-}
-
+/* =========================
+   RENDER
+========================= */
 function render(){
+  const w = canvas.clientWidth;
+  const h = canvas.clientHeight;
+
+  ctx.save();
+  ctx.setTransform(1,0,0,1,0,0);
   ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.restore();
 
-  // background water
-  ctx.fillStyle = "rgba(10,18,26,0.75)";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = "#050912";
+  ctx.fillRect(0,0,w,h);
 
-  // subtle grid lines
-  const {cw,ch} = cellSize();
-  ctx.strokeStyle = "rgba(0,255,225,0.06)";
-  ctx.lineWidth = 1;
-  for(let i=0;i<=gridN;i++){
-    ctx.beginPath(); ctx.moveTo(i*cw,0); ctx.lineTo(i*cw,canvas.height); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(0,i*ch); ctx.lineTo(canvas.width,i*ch); ctx.stroke();
-  }
+  ctx.save();
 
-  // land
-  for(let y=0;y<gridN;y++){
-    for(let x=0;x<gridN;x++){
-      const v = grid[idx(x,y)];
-      if(!v) continue;
-      ctx.fillStyle = v;
-      ctx.fillRect(x*cw, y*ch, cw, ch);
+  const cx = w / 2;
+  const cy = h / 2;
+  ctx.translate(cx,cy);
+  ctx.scale(camera.zoom,camera.zoom);
+  ctx.translate(-cx + camera.x, -cy + camera.y);
+
+  drawMap();
+  drawObjects();
+
+  ctx.restore();
+
+  updateStatus();
+}
+
+function drawMap(){
+  const mapSize = mapPixelSize();
+  const offsetX = (canvas.clientWidth - mapSize) / 2;
+  const offsetY = (canvas.clientHeight - mapSize) / 2;
+  const ts = tileSize();
+
+  ctx.fillStyle = currentPalette[0].color;
+  ctx.fillRect(offsetX, offsetY, mapSize, mapSize);
+
+  for(let y = 0; y < gridN; y++){
+    for(let x = 0; x < gridN; x++){
+      const color = grid[y][x];
+      if(!color) continue;
+
+      ctx.fillStyle = color;
+      ctx.fillRect(offsetX + x * ts, offsetY + y * ts, ts + 0.2, ts + 0.2);
     }
   }
 
-  // objects
-  for(const o of objects){
-    const isSel = o.id === selectedId;
+  if(showCoast){
+    drawCoastGlow(offsetX, offsetY, ts);
+  }
+
+  if(showGrid && ts * camera.zoom > 5){
+    ctx.strokeStyle = "rgba(0,255,225,0.08)";
+    ctx.lineWidth = 1 / camera.zoom;
+
+    for(let i = 0; i <= gridN; i++){
+      ctx.beginPath();
+      ctx.moveTo(offsetX + i * ts, offsetY);
+      ctx.lineTo(offsetX + i * ts, offsetY + mapSize);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(offsetX, offsetY + i * ts);
+      ctx.lineTo(offsetX + mapSize, offsetY + i * ts);
+      ctx.stroke();
+    }
+  }
+
+  ctx.strokeStyle = "rgba(0,255,225,0.5)";
+  ctx.lineWidth = 2 / camera.zoom;
+  ctx.strokeRect(offsetX, offsetY, mapSize, mapSize);
+}
+
+function drawCoastGlow(offsetX, offsetY, ts){
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+
+  for(let y = 0; y < gridN; y++){
+    for(let x = 0; x < gridN; x++){
+      if(!grid[y][x]) continue;
+
+      const neighbors = [
+        grid[y-1]?.[x],
+        grid[y+1]?.[x],
+        grid[y]?.[x-1],
+        grid[y]?.[x+1]
+      ];
+
+      if(neighbors.some(n => !n)){
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(offsetX + x * ts, offsetY + y * ts, ts, ts);
+      }
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawObjects(){
+  for(const obj of objects){
+    const selected = obj.id === selectedId;
+
     ctx.save();
-    ctx.translate(o.x, o.y);
+    ctx.translate(obj.x, obj.y);
 
-    if(o.type === "label"){
-      ctx.font = `bold ${Math.max(14, Math.floor(o.size/2))}px ui-monospace, monospace`;
-      ctx.fillStyle = o.color;
-      ctx.shadowColor = "rgba(0,255,225,0.25)";
-      ctx.shadowBlur = 10;
-      ctx.fillText(o.text || "Label", 0, 0);
-      if(isSel){
-        const w = ctx.measureText(o.text || "Label").width;
-        ctx.strokeStyle = "rgba(0,255,225,0.8)";
-        ctx.strokeRect(-4, -18, w+8, 26);
-      }
-    } else {
-      // marker
-      ctx.fillStyle = o.color;
-      ctx.shadowColor = "rgba(0,255,225,0.25)";
-      ctx.shadowBlur = 12;
-      const s = o.size;
-      if(o.type === "circle"){
-        ctx.beginPath();
-        ctx.arc(0,0,s/2,0,Math.PI*2);
-        ctx.fill();
-      } else {
-        ctx.fillRect(-s/2,-s/2,s,s);
-      }
-      if(isSel){
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = "rgba(0,255,225,0.95)";
-        ctx.strokeRect(-s/2-4, -s/2-4, s+8, s+8);
+    ctx.shadowColor = obj.color;
+    ctx.shadowBlur = 12 / camera.zoom;
+    ctx.fillStyle = obj.color;
+    ctx.strokeStyle = selected ? "#00ffe1" : "rgba(0,0,0,0.75)";
+    ctx.lineWidth = selected ? 3 / camera.zoom : 1 / camera.zoom;
+
+    if(obj.type === "circle"){
+      ctx.beginPath();
+      ctx.arc(0,0,obj.size / 2,0,Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    if(obj.type === "square"){
+      ctx.fillRect(-obj.size/2,-obj.size/2,obj.size,obj.size);
+      ctx.strokeRect(-obj.size/2,-obj.size/2,obj.size,obj.size);
+    }
+
+    if(obj.type === "label"){
+      ctx.font = `bold ${obj.size}px monospace`;
+      ctx.textBaseline = "middle";
+      ctx.fillText(obj.text || "Label",0,0);
+
+      if(selected){
+        const width = ctx.measureText(obj.text || "Label").width;
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "#00ffe1";
+        ctx.strokeRect(-4,-obj.size/2 - 4,width + 8,obj.size + 8);
       }
     }
+
     ctx.restore();
   }
 }
 
-/* ===================== OBJECT HIT TEST / SELECT ===================== */
-function hitObject(px, py){
-  // top-most first
-  for(let i=objects.length-1;i>=0;i--){
-    const o = objects[i];
-    if(o.type === "label"){
-      // rough bounding box
-      ctx.save();
-      ctx.font = `bold ${Math.max(14, Math.floor(o.size/2))}px ui-monospace, monospace`;
-      const w = ctx.measureText(o.text || "Label").width;
-      ctx.restore();
-      if(px >= o.x-6 && px <= o.x+w+6 && py >= o.y-20 && py <= o.y+10){
-        return o;
+/* =========================
+   TOOLS
+========================= */
+document.querySelectorAll(".toolBtn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    tool = btn.dataset.tool;
+    document.querySelectorAll(".toolBtn").forEach(b => b.classList.toggle("active", b === btn));
+    updateStatus();
+  });
+});
+
+brushSize.addEventListener("input", ()=>{
+  brush = Number(brushSize.value);
+  brushRead.textContent = brush;
+});
+
+function paintAt(cell, color){
+  if(!cell) return;
+
+  for(let oy = -brush; oy <= brush; oy++){
+    for(let ox = -brush; ox <= brush; ox++){
+      if(ox * ox + oy * oy > brush * brush) continue;
+
+      const x = cell.x + ox;
+      const y = cell.y + oy;
+
+      if(x < 0 || y < 0 || x >= gridN || y >= gridN) continue;
+      grid[y][x] = color;
+      changedDuringDrag = true;
+    }
+  }
+}
+
+function floodFill(cell, color){
+  if(!cell) return;
+
+  const target = grid[cell.y][cell.x];
+
+  if(target === color) return;
+
+  const queue = [[cell.x,cell.y]];
+  const visited = new Set();
+
+  while(queue.length){
+    const [x,y] = queue.shift();
+    const key = x + "," + y;
+
+    if(visited.has(key)) continue;
+    visited.add(key);
+
+    if(x < 0 || y < 0 || x >= gridN || y >= gridN) continue;
+    if(grid[y][x] !== target) continue;
+
+    grid[y][x] = color;
+    changedDuringDrag = true;
+
+    queue.push([x+1,y]);
+    queue.push([x-1,y]);
+    queue.push([x,y+1]);
+    queue.push([x,y-1]);
+  }
+}
+
+function pickTile(cell){
+  if(!cell) return;
+
+  const color = grid[cell.y][cell.x] || currentPalette[0].color;
+  const match = currentPalette.find(t => t.color === color);
+
+  if(match){
+    selectedTile = match;
+    buildPalette();
+    showToast("Picked " + match.name);
+  }
+}
+
+function placeObject(world, type){
+  const obj = {
+    id:newId(),
+    type,
+    x:world.x,
+    y:world.y,
+    size:type === "label" ? 28 : 32,
+    color:"#00ffe1",
+    text:type === "label" ? "Label" : ""
+  };
+
+  if(type === "label"){
+    const text = prompt("Label text?", "New Label");
+    if(text === null) return;
+    obj.text = text;
+  }
+
+  objects.push(obj);
+  selectedId = obj.id;
+  changedDuringDrag = true;
+  refreshSelectedUI();
+  renderObjectList();
+}
+
+function hitObject(world){
+  for(let i = objects.length - 1; i >= 0; i--){
+    const obj = objects[i];
+
+    if(obj.type === "label"){
+      ctx.font = `bold ${obj.size}px monospace`;
+      const width = ctx.measureText(obj.text || "Label").width;
+
+      if(
+        world.x >= obj.x - 6 &&
+        world.x <= obj.x + width + 6 &&
+        world.y >= obj.y - obj.size / 2 - 6 &&
+        world.y <= obj.y + obj.size / 2 + 6
+      ){
+        return obj;
       }
-    } else {
-      const s = o.size;
-      if(px >= o.x - s/2 && px <= o.x + s/2 && py >= o.y - s/2 && py <= o.y + s/2){
-        return o;
+    }else{
+      const s = obj.size / 2;
+
+      if(
+        world.x >= obj.x - s &&
+        world.x <= obj.x + s &&
+        world.y >= obj.y - s &&
+        world.y <= obj.y + s
+      ){
+        return obj;
       }
     }
   }
+
   return null;
 }
 
-function selectObject(obj){
-  selectedId = obj ? obj.id : null;
-  refreshSelectionUI();
-  render();
-}
+/* =========================
+   POINTERS
+========================= */
+canvas.addEventListener("contextmenu", event => event.preventDefault());
 
-function refreshSelectionUI(){
-  const obj = objects.find(o => o.id === selectedId);
-  if(!obj){
-    ui.selNone.style.display = "block";
-    ui.selBox.style.display = "none";
-    return;
-  }
-  ui.selNone.style.display = "none";
-  ui.selBox.style.display = "block";
-  ui.selType.textContent = obj.type;
-  ui.selColor.value = rgbToHex(obj.color);
-  ui.selSize.value = String(obj.size);
-  ui.selText.style.display = (obj.type==="label") ? "block" : "none";
-  ui.selText.value = obj.text || "";
-}
+canvas.addEventListener("pointerdown", event=>{
+  event.preventDefault();
+  canvas.setPointerCapture(event.pointerId);
 
-function rgbToHex(color){
-  // color is stored as CSS string like "#00ffe1" or "rgb(...)"
-  // We keep it as hex always for simplicity.
-  if(color.startsWith("#")) return color;
-  return "#00ffe1";
-}
+  const world = screenToWorld(event.clientX,event.clientY);
+  const cell = worldToCell(world.x,world.y);
+  const hit = hitObject(world);
 
-ui.selColor.oninput = () => {
-  const obj = objects.find(o => o.id === selectedId);
-  if(!obj) return;
-  pushUndo();
-  obj.color = ui.selColor.value;
-  render();
-};
-
-ui.selSize.oninput = () => {
-  const obj = objects.find(o => o.id === selectedId);
-  if(!obj) return;
-  obj.size = parseInt(ui.selSize.value,10);
-  render();
-};
-ui.selSize.onchange = () => pushUndo();
-
-ui.selText.oninput = () => {
-  const obj = objects.find(o => o.id === selectedId);
-  if(!obj) return;
-  obj.text = ui.selText.value;
-  render();
-};
-
-document.getElementById("btnDeleteSel").onclick = () => {
-  const idx = objects.findIndex(o => o.id === selectedId);
-  if(idx<0) return;
-  pushUndo();
-  objects.splice(idx,1);
-  selectedId = null;
-  refreshSelectionUI();
-  render();
-};
-
-function newId(){ return "o_" + Math.random().toString(36).slice(2) + "_" + Date.now(); }
-
-/* ===================== AUTO GENERATE ===================== */
-/* v1 generator: island blobs + erosion-ish smoothing + lakes */
-function autoGenerate(){
-  pushUndo();
-  grid = new Array(gridN*gridN).fill(null);
-
-  // helper random
-  const rand = (a,b)=>a+Math.random()*(b-a);
-
-  // pick 2-4 islands
-  const islands = Math.floor(rand(2,5));
-  const centers = [];
-  for(let i=0;i<islands;i++){
-    centers.push({
-      x: rand(gridN*0.2, gridN*0.8),
-      y: rand(gridN*0.2, gridN*0.8),
-      r: rand(gridN*0.18, gridN*0.32),
-    });
-  }
-
-  // base: fill land by distance to island centers
-  for(let y=0;y<gridN;y++){
-    for(let x=0;x<gridN;x++){
-      let m = 999;
-      for(const c of centers){
-        const dx=x-c.x, dy=y-c.y;
-        const d = Math.sqrt(dx*dx+dy*dy) / c.r;
-        m = Math.min(m, d);
-      }
-      // noise
-      const n = (Math.sin(x*0.35)+Math.cos(y*0.31))*0.06 + (Math.random()-0.5)*0.12;
-      const v = m + n;
-
-      if(v < 1.0){
-        // choose biome by "height"
-        // smaller v = more central/high land
-        let col = LAND_COLORS[2]; // grass
-        if(v < 0.35) col = LAND_COLORS[1]; // forest
-        if(v < 0.22) col = LAND_COLORS[0]; // deep green
-        if(v > 0.85) col = LAND_COLORS[5]; // sand coastline
-        grid[idx(x,y)] = col;
-      }
-    }
-  }
-
-  // smoothing passes (erode jaggies)
-  for(let pass=0; pass<3; pass++){
-    const next = grid.slice();
-    for(let y=1;y<gridN-1;y++){
-      for(let x=1;x<gridN-1;x++){
-        let landCount=0;
-        for(let oy=-1;oy<=1;oy++){
-          for(let ox=-1;ox<=1;ox++){
-            if(grid[idx(x+ox,y+oy)]) landCount++;
-          }
-        }
-        if(landCount <= 3) next[idx(x,y)] = null;
-        if(landCount >= 6 && !grid[idx(x,y)]) next[idx(x,y)] = LAND_COLORS[5]; // sandy fill
-      }
-    }
-    grid = next;
-  }
-
-  // lakes: carve a few circles inside land
-  const lakes = Math.floor(rand(2,6));
-  for(let i=0;i<lakes;i++){
-    const lx = rand(gridN*0.25, gridN*0.75);
-    const ly = rand(gridN*0.25, gridN*0.75);
-    const rr = rand(2, 6);
-    for(let y=0;y<gridN;y++){
-      for(let x=0;x<gridN;x++){
-        const dx=x-lx, dy=y-ly;
-        if(dx*dx+dy*dy <= rr*rr){
-          // only carve if it was land
-          if(grid[idx(x,y)]) grid[idx(x,y)] = null;
-        }
-      }
-    }
-  }
-
-  render();
-}
-
-document.getElementById("btnAuto").onclick = autoGenerate;
-
-/* ===================== UNDO / REDO ===================== */
-document.getElementById("btnUndo").onclick = () => {
-  if(undoStack.length===0) return;
-  redoStack.push(snapshot());
-  applyState(undoStack.pop());
-};
-document.getElementById("btnRedo").onclick = () => {
-  if(redoStack.length===0) return;
-  undoStack.push(snapshot());
-  applyState(redoStack.pop());
-};
-
-addEventListener("keydown",(e)=>{
-  if(e.key==="Delete"){
-    const i = objects.findIndex(o => o.id === selectedId);
-    if(i>=0){
-      pushUndo();
-      objects.splice(i,1);
-      selectedId=null;
-      refreshSelectionUI();
-      render();
-    }
-  }
-  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="z"){
-    e.preventDefault();
-    document.getElementById("btnUndo").click();
-  }
-  if((e.ctrlKey||e.metaKey) && (e.key.toLowerCase()==="y")){
-    e.preventDefault();
-    document.getElementById("btnRedo").click();
-  }
-});
-
-/* ===================== EXPORT / IMPORT ===================== */
-function exportJSON(){
-  const data = {
-    version: 1,
-    gridN,
-    grid,
-    objects,
-  };
-  ui.jsonBox.value = JSON.stringify(data, null, 2);
-}
-function importJSON(){
-  try{
-    const data = JSON.parse(ui.jsonBox.value);
-    if(!data || !data.gridN || !Array.isArray(data.grid) || !Array.isArray(data.objects)) throw new Error("Bad JSON");
-    pushUndo();
-    gridN = data.gridN;
-    ui.gridSize.value = String(gridN);
-    grid = data.grid;
-    objects = data.objects;
-    selectedId = null;
-    render();
-    refreshSelectionUI();
-  }catch(err){
-    alert("Import failed: " + err.message);
-  }
-}
-document.getElementById("btnExport").onclick = exportJSON;
-document.getElementById("btnImport").onclick = importJSON;
-document.getElementById("btnCopy").onclick = async () => {
-  try{
-    await navigator.clipboard.writeText(ui.jsonBox.value || "");
-  }catch{
-    alert("Copy failed (browser blocked clipboard).");
-  }
-};
-
-document.getElementById("btnClear").onclick = () => {
-  pushUndo();
-  grid = new Array(gridN*gridN).fill(null);
-  objects = [];
-  selectedId=null;
-  refreshSelectionUI();
-  render();
-};
-
-/* ===================== INPUT (DRAW / PLACE / MOVE) ===================== */
-let dragging = false;
-let dragObj = null;
-let dragOffset = {x:0,y:0};
-
-function placeObject(px, py){
-  const base = {
-    id: newId(),
-    x: px, y: py,
-    size: 30,
-    color: "#00ffe1",
-    text: "Label"
-  };
-  if(mode === MODES.CIRCLE){
-    pushUndo();
-    objects.push({...base, type:"circle"});
-    selectObject(objects[objects.length-1]);
-  } else if(mode === MODES.SQUARE){
-    pushUndo();
-    objects.push({...base, type:"square"});
-    selectObject(objects[objects.length-1]);
-  } else if(mode === MODES.LABEL){
-    const text = prompt("Label text?", "New Label");
-    if(text === null) return;
-    pushUndo();
-    objects.push({...base, type:"label", text:text, size:36, color:"#00ffe1"});
-    selectObject(objects[objects.length-1]);
-  }
-}
-
-canvas.addEventListener("pointerdown", (e)=>{
-  const p = toCanvasPos(e.clientX, e.clientY);
-  canvas.setPointerCapture(e.pointerId);
-
-  const hit = hitObject(p.x, p.y);
-  if(hit){
-    selectObject(hit);
-    // move if not painting/erasing
-    dragging = true;
-    dragObj = hit;
-    dragOffset.x = p.x - hit.x;
-    dragOffset.y = p.y - hit.y;
-    return;
-  }
-
-  // if placing objects
-  if([MODES.CIRCLE, MODES.SQUARE, MODES.LABEL].includes(mode)){
-    placeObject(p.x, p.y);
-    render();
-    return;
-  }
-
-  // paint/erase
-  pushUndo();
   dragging = true;
-  if(mode === MODES.PAINT) paintAt(p.x, p.y, selectedLandColor);
-  if(mode === MODES.ERASE) paintAt(p.x, p.y, null);
-  render();
-});
+  changedDuringDrag = false;
+  lastPointer = {x:event.clientX,y:event.clientY};
 
-canvas.addEventListener("pointermove", (e)=>{
-  if(!dragging) return;
-  const p = toCanvasPos(e.clientX, e.clientY);
-
-  if(dragObj){
-    dragObj.x = p.x - dragOffset.x;
-    dragObj.y = p.y - dragOffset.y;
+  if(event.button === 2){
+    dragMode = "paint";
+    paintAt(cell, null);
     render();
     return;
   }
 
-  if(mode === MODES.PAINT) paintAt(p.x, p.y, selectedLandColor);
-  if(mode === MODES.ERASE) paintAt(p.x, p.y, null);
-  render();
+  if(tool === "pan"){
+    dragMode = "pan";
+    return;
+  }
+
+  if(hit && (tool === "select" || tool === "paint" || tool === "erase")){
+    selectedId = hit.id;
+    dragMode = "object";
+    dragObj = hit;
+    refreshSelectedUI();
+    render();
+    return;
+  }
+
+  if(tool === "select"){
+    selectedId = hit ? hit.id : null;
+    refreshSelectedUI();
+    render();
+    return;
+  }
+
+  if(tool === "circle" || tool === "square" || tool === "label"){
+    pushUndo();
+    placeObject(world, tool);
+    render();
+    return;
+  }
+
+  if(tool === "paint"){
+    dragMode = "paint";
+    paintAt(cell, selectedTile.color);
+    render();
+  }
+
+  if(tool === "erase"){
+    dragMode = "paint";
+    paintAt(cell, null);
+    render();
+  }
+
+  if(tool === "fill"){
+    pushUndo();
+    floodFill(cell, selectedTile.color);
+    render();
+    pushUndo();
+    dragging = false;
+  }
+
+  if(tool === "pick"){
+    pickTile(cell);
+    dragging = false;
+  }
 });
 
-canvas.addEventListener("pointerup", (e)=>{
+canvas.addEventListener("pointermove", event=>{
+  if(!dragging) return;
+  event.preventDefault();
+
+  const world = screenToWorld(event.clientX,event.clientY);
+  const cell = worldToCell(world.x,world.y);
+
+  if(dragMode === "pan"){
+    camera.x += (event.clientX - lastPointer.x) / camera.zoom;
+    camera.y += (event.clientY - lastPointer.y) / camera.zoom;
+    lastPointer = {x:event.clientX,y:event.clientY};
+    render();
+    return;
+  }
+
+  if(dragMode === "object" && dragObj){
+    dragObj.x = world.x;
+    dragObj.y = world.y;
+    changedDuringDrag = true;
+    render();
+    return;
+  }
+
+  if(dragMode === "paint"){
+    if(tool === "erase" || event.buttons === 2){
+      paintAt(cell, null);
+    }else{
+      paintAt(cell, selectedTile.color);
+    }
+    render();
+  }
+});
+
+canvas.addEventListener("pointerup", ()=>{
+  if(changedDuringDrag){
+    pushUndo();
+  }
+
   dragging = false;
+  dragMode = null;
   dragObj = null;
 });
 
-canvas.addEventListener("wheel",(e)=>{
-  const obj = objects.find(o => o.id === selectedId);
-  if(!obj) return;
-  e.preventDefault();
-  pushUndo();
-  obj.size = Math.max(6, Math.min(120, obj.size + (e.deltaY < 0 ? 4 : -4)));
-  ui.selSize.value = String(obj.size);
+canvas.addEventListener("pointercancel", ()=>{
+  if(changedDuringDrag){
+    pushUndo();
+  }
+
+  dragging = false;
+  dragMode = null;
+  dragObj = null;
+});
+
+canvas.addEventListener("wheel", event=>{
+  event.preventDefault();
+
+  const oldZoom = camera.zoom;
+  const delta = event.deltaY < 0 ? 1.12 : 0.88;
+  camera.zoom = Math.max(0.45, Math.min(3.5, camera.zoom * delta));
+
+  const rect = canvas.getBoundingClientRect();
+  const mx = event.clientX - rect.left;
+  const my = event.clientY - rect.top;
+  const cx = canvas.clientWidth / 2;
+  const cy = canvas.clientHeight / 2;
+
+  camera.x -= (mx - cx) * (1 / oldZoom - 1 / camera.zoom);
+  camera.y -= (my - cy) * (1 / oldZoom - 1 / camera.zoom);
+
   render();
 }, {passive:false});
 
-render();
-setMode(MODES.PAINT);
-refreshSelectionUI();
+/* =========================
+   SELECTED UI
+========================= */
+function selectedObject(){
+  return objects.find(obj => obj.id === selectedId);
+}
+
+function refreshSelectedUI(){
+  const obj = selectedObject();
+
+  if(!obj){
+    selectedEmpty.style.display = "block";
+    selectedBox.style.display = "none";
+    renderObjectList();
+    return;
+  }
+
+  selectedEmpty.style.display = "none";
+  selectedBox.style.display = "block";
+
+  selType.value = obj.type;
+  selColor.value = obj.color;
+  selSize.value = obj.size;
+  selSizeRead.textContent = obj.size;
+  selText.value = obj.text || "";
+  selText.disabled = obj.type !== "label";
+
+  renderObjectList();
+}
+
+selColor.addEventListener("input", ()=>{
+  const obj = selectedObject();
+  if(!obj) return;
+  obj.color = selColor.value;
+  render();
+});
+
+selColor.addEventListener("change", pushUndo);
+
+selSize.addEventListener("input", ()=>{
+  const obj = selectedObject();
+  if(!obj) return;
+  obj.size = Number(selSize.value);
+  selSizeRead.textContent = obj.size;
+  render();
+});
+
+selSize.addEventListener("change", pushUndo);
+
+selText.addEventListener("input", ()=>{
+  const obj = selectedObject();
+  if(!obj) return;
+  obj.text = selText.value;
+  render();
+});
+
+selText.addEventListener("change", pushUndo);
+
+focusSelectedBtn.addEventListener("click", ()=>{
+  const obj = selectedObject();
+  if(!obj) return;
+
+  camera.x = canvas.clientWidth / 2 - obj.x;
+  camera.y = canvas.clientHeight / 2 - obj.y;
+  camera.zoom = 1.8;
+  render();
+});
+
+deleteSelectedBtn.addEventListener("click", ()=>{
+  const index = objects.findIndex(obj => obj.id === selectedId);
+  if(index < 0) return;
+
+  pushUndo();
+  objects.splice(index,1);
+  selectedId = null;
+  refreshSelectedUI();
+  render();
+});
+
+function renderObjectList(){
+  objectList.innerHTML = "";
+
+  if(objects.length === 0){
+    objectList.innerHTML = `<div class="smallNote">No objects yet.</div>`;
+    return;
+  }
+
+  objects.forEach((obj,index)=>{
+    const item = document.createElement("div");
+    item.className = "objectItem";
+    item.classList.toggle("active", obj.id === selectedId);
+    item.textContent = `${index + 1}. ${obj.type}${obj.text ? " — " + obj.text : ""}`;
+
+    item.addEventListener("click", ()=>{
+      selectedId = obj.id;
+      refreshSelectedUI();
+      render();
+    });
+
+    objectList.appendChild(item);
+  });
+}
+
+/* =========================
+   MAP ACTIONS
+========================= */
+applyGridBtn.addEventListener("click", ()=>{
+  const newSize = Number(gridSize.value);
+  if(newSize === gridN) return;
+  if(!confirm("Change map size? Existing map will be remapped.")) return;
+
+  pushUndo();
+
+  const old = grid;
+  const oldN = gridN;
+  const next = Array.from({length:newSize}, () => Array(newSize).fill(null));
+
+  for(let y = 0; y < newSize; y++){
+    for(let x = 0; x < newSize; x++){
+      const ox = Math.floor(x * oldN / newSize);
+      const oy = Math.floor(y * oldN / newSize);
+      next[y][x] = old[oy]?.[ox] ?? null;
+    }
+  }
+
+  gridN = newSize;
+  grid = next;
+  render();
+  pushUndo();
+});
+
+resetViewBtn.addEventListener("click", ()=>{
+  camera = {x:0,y:0,zoom:1};
+  render();
+});
+
+toggleGridBtn.addEventListener("click", ()=>{
+  showGrid = !showGrid;
+  toggleGridBtn.textContent = showGrid ? "Grid ON" : "Grid OFF";
+  toggleGridBtn.classList.toggle("active", showGrid);
+  render();
+});
+
+toggleCoastBtn.addEventListener("click", ()=>{
+  showCoast = !showCoast;
+  toggleCoastBtn.textContent = showCoast ? "Coast Glow ON" : "Coast Glow OFF";
+  toggleCoastBtn.classList.toggle("active", showCoast);
+  render();
+});
+
+clearBtn.addEventListener("click", ()=>{
+  if(!confirm("Clear map?")) return;
+
+  pushUndo();
+  grid = Array.from({length:gridN}, () => Array(gridN).fill(null));
+  objects = [];
+  selectedId = null;
+  refreshSelectedUI();
+  render();
+  pushUndo();
+});
+
+fillAllBtn.addEventListener("click", ()=>{
+  pushUndo();
+  grid = grid.map(row => row.map(() => selectedTile.color));
+  render();
+  pushUndo();
+});
+
+undoBtn.addEventListener("click", undo);
+redoBtn.addEventListener("click", redo);
+
+/* =========================
+   AUTO GENERATORS
+========================= */
+autoIslandBtn.addEventListener("click", ()=>{
+  pushUndo();
+  generateIsland();
+  render();
+  pushUndo();
+});
+
+autoCavesBtn.addEventListener("click", ()=>{
+  pushUndo();
+  generateCaves();
+  render();
+  pushUndo();
+});
+
+function generateIsland(){
+  grid = Array.from({length:gridN}, () => Array(gridN).fill(null));
+
+  const water = currentPalette[0].color;
+  const sand = currentPalette[2]?.color || currentPalette[0].color;
+  const grass = currentPalette[3]?.color || sand;
+  const forest = currentPalette[4]?.color || grass;
+  const rock = currentPalette[5]?.color || forest;
+
+  const centers = [];
+  const count = Math.floor(random(2,5));
+
+  for(let i = 0; i < count; i++){
+    centers.push({
+      x:random(gridN * 0.22, gridN * 0.78),
+      y:random(gridN * 0.22, gridN * 0.78),
+      r:random(gridN * 0.18, gridN * 0.34)
+    });
+  }
+
+  for(let y = 0; y < gridN; y++){
+    for(let x = 0; x < gridN; x++){
+      let nearest = 999;
+
+      for(const c of centers){
+        const dx = x - c.x;
+        const dy = y - c.y;
+        const d = Math.sqrt(dx*dx + dy*dy) / c.r;
+        nearest = Math.min(nearest, d);
+      }
+
+      const noise = Math.sin(x * 0.31) * 0.08 + Math.cos(y * 0.27) * 0.08 + (Math.random() - 0.5) * 0.14;
+      const v = nearest + noise;
+
+      if(v < 1){
+        if(v > 0.82) grid[y][x] = sand;
+        else if(v < 0.24) grid[y][x] = rock;
+        else if(v < 0.46) grid[y][x] = forest;
+        else grid[y][x] = grass;
+      }
+    }
+  }
+
+  smoothLand(sand);
+  objects = [];
+  selectedId = null;
+  refreshSelectedUI();
+}
+
+function generateCaves(){
+  const wall = currentPalette[5]?.color || "#555555";
+  const floor = currentPalette[2]?.color || "#333333";
+
+  grid = Array.from({length:gridN}, () => Array(gridN).fill(wall));
+
+  for(let y = 0; y < gridN; y++){
+    for(let x = 0; x < gridN; x++){
+      if(Math.random() > 0.47){
+        grid[y][x] = floor;
+      }
+    }
+  }
+
+  for(let pass = 0; pass < 5; pass++){
+    const next = grid.map(row => row.slice());
+
+    for(let y = 1; y < gridN - 1; y++){
+      for(let x = 1; x < gridN - 1; x++){
+        let walls = 0;
+
+        for(let oy = -1; oy <= 1; oy++){
+          for(let ox = -1; ox <= 1; ox++){
+            if(ox === 0 && oy === 0) continue;
+            if(grid[y + oy][x + ox] === wall) walls++;
+          }
+        }
+
+        next[y][x] = walls >= 5 ? wall : floor;
+      }
+    }
+
+    grid = next;
+  }
+
+  objects = [];
+  selectedId = null;
+  refreshSelectedUI();
+}
+
+function smoothLand(fillColor){
+  for(let pass = 0; pass < 2; pass++){
+    const next = grid.map(row => row.slice());
+
+    for(let y = 1; y < gridN - 1; y++){
+      for(let x = 1; x < gridN - 1; x++){
+        let land = 0;
+
+        for(let oy = -1; oy <= 1; oy++){
+          for(let ox = -1; ox <= 1; ox++){
+            if(grid[y + oy][x + ox]) land++;
+          }
+        }
+
+        if(land <= 3) next[y][x] = null;
+        if(land >= 6 && !grid[y][x]) next[y][x] = fillColor;
+      }
+    }
+
+    grid = next;
+  }
+}
+
+/* =========================
+   EXPORT / IMPORT
+========================= */
+function getProjectData(){
+  return {
+    version:2,
+    gridN,
+    grid,
+    objects,
+    palettePreset:palettePreset.value,
+    showGrid,
+    showCoast
+  };
+}
+
+function loadProjectData(data){
+  gridN = Number(data.gridN) || 64;
+  gridSize.value = String(gridN);
+  grid = Array.isArray(data.grid)
+    ? data.grid.map(row => row.slice())
+    : Array.from({length:gridN}, () => Array(gridN).fill(null));
+
+  objects = Array.isArray(data.objects) ? data.objects : [];
+  palettePreset.value = data.palettePreset || "classic";
+  currentPalette = PALETTES[palettePreset.value] || PALETTES.classic;
+  selectedTile = currentPalette[0];
+
+  showGrid = data.showGrid !== false;
+  showCoast = data.showCoast !== false;
+
+  toggleGridBtn.textContent = showGrid ? "Grid ON" : "Grid OFF";
+  toggleCoastBtn.textContent = showCoast ? "Coast Glow ON" : "Coast Glow OFF";
+  toggleGridBtn.classList.toggle("active", showGrid);
+  toggleCoastBtn.classList.toggle("active", showCoast);
+
+  selectedId = null;
+  buildPalette();
+  refreshSelectedUI();
+  render();
+}
+
+exportBtn.addEventListener("click", ()=>{
+  jsonBox.value = JSON.stringify(getProjectData(), null, 2);
+  showToast("Exported JSON.");
+});
+
+importBtn.addEventListener("click", ()=>{
+  try{
+    pushUndo();
+    loadProjectData(JSON.parse(jsonBox.value));
+    pushUndo();
+    showToast("Imported JSON.");
+  }catch(error){
+    console.error(error);
+    showToast("Import failed.");
+  }
+});
+
+copyBtn.addEventListener("click", async ()=>{
+  try{
+    await navigator.clipboard.writeText(jsonBox.value);
+    showToast("Copied JSON.");
+  }catch{
+    showToast("Copy failed.");
+  }
+});
+
+saveLocalBtn.addEventListener("click", ()=>{
+  localStorage.setItem("JERRY_MAP_CREATOR_v2", JSON.stringify(getProjectData()));
+  showToast("Saved locally.");
+});
+
+loadLocalBtn.addEventListener("click", ()=>{
+  const raw = localStorage.getItem("JERRY_MAP_CREATOR_v2");
+
+  if(!raw){
+    showToast("No local save found.");
+    return;
+  }
+
+  try{
+    loadProjectData(JSON.parse(raw));
+    showToast("Loaded local save.");
+  }catch(error){
+    console.error(error);
+    showToast("Load failed.");
+  }
+});
+
+downloadBtn.addEventListener("click", ()=>{
+  const out = document.createElement("canvas");
+  out.width = 1600;
+  out.height = 1600;
+  const g = out.getContext("2d");
+
+  const oldCanvas = canvas;
+  const oldCtx = ctx;
+
+  renderToContext(g, out.width, out.height);
+
+  const a = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download = `jerry-map-${gridN}x${gridN}-${stamp}.png`;
+  a.href = out.toDataURL("image/png");
+  a.click();
+
+  showToast("Downloaded PNG.");
+});
+
+function renderToContext(g,w,h){
+  const ts = w / gridN;
+
+  g.fillStyle = currentPalette[0].color;
+  g.fillRect(0,0,w,h);
+
+  for(let y = 0; y < gridN; y++){
+    for(let x = 0; x < gridN; x++){
+      const color = grid[y][x];
+      if(!color) continue;
+      g.fillStyle = color;
+      g.fillRect(x * ts, y * ts, ts, ts);
+    }
+  }
+
+  for(const obj of objects){
+    const mapSize = mapPixelSize();
+    const offsetX = (canvas.clientWidth - mapSize) / 2;
+    const offsetY = (canvas.clientHeight - mapSize) / 2;
+    const nx = (obj.x - offsetX) / mapSize;
+    const ny = (obj.y - offsetY) / mapSize;
+
+    const x = nx * w;
+    const y = ny * h;
+    const size = obj.size * (w / mapSize);
+
+    g.fillStyle = obj.color;
+    g.strokeStyle = "#000";
+    g.lineWidth = 3;
+
+    if(obj.type === "circle"){
+      g.beginPath();
+      g.arc(x,y,size/2,0,Math.PI*2);
+      g.fill();
+      g.stroke();
+    }
+
+    if(obj.type === "square"){
+      g.fillRect(x - size/2,y - size/2,size,size);
+      g.strokeRect(x - size/2,y - size/2,size,size);
+    }
+
+    if(obj.type === "label"){
+      g.font = `bold ${size}px monospace`;
+      g.fillText(obj.text || "Label",x,y);
+    }
+  }
+}
+
+/* =========================
+   KEYBOARD
+========================= */
+addEventListener("keydown", event=>{
+  if(event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+
+  if(event.key === "Delete"){
+    deleteSelectedBtn.click();
+  }
+
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z"){
+    event.preventDefault();
+    undo();
+  }
+
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y"){
+    event.preventDefault();
+    redo();
+  }
+
+  if(event.key.toLowerCase() === "p") setTool("paint");
+  if(event.key.toLowerCase() === "e") setTool("erase");
+  if(event.key.toLowerCase() === "f") setTool("fill");
+  if(event.key.toLowerCase() === "v") setTool("select");
+  if(event.key.toLowerCase() === " ") setTool("pan");
+});
+
+function setTool(nextTool){
+  tool = nextTool;
+  document.querySelectorAll(".toolBtn").forEach(btn=>{
+    btn.classList.toggle("active", btn.dataset.tool === tool);
+  });
+  updateStatus();
+}
+
+/* =========================
+   STATUS / BUTTONS
+========================= */
+function updateButtons(){
+  toggleGridBtn.classList.toggle("active", showGrid);
+  toggleCoastBtn.classList.toggle("active", showCoast);
+}
+
+function updateStatus(){
+  status.textContent = `Tool: ${tool} • Grid ${gridN}×${gridN} • Zoom ${camera.zoom.toFixed(2)}x`;
+}
+
+function storageReady(){
+  return true;
+}
+
+/* =========================
+   START
+========================= */
+function start(){
+  currentPalette = PALETTES[palettePreset.value];
+  selectedTile = currentPalette[3] || currentPalette[0];
+  buildPalette();
+  initGrid(64);
+  refreshSelectedUI();
+  renderObjectList();
+  showToast("Map Creator ready.");
+}
+
+start();
 </script>
 </body>
 </html>
