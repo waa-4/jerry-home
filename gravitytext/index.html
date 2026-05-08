@@ -634,26 +634,26 @@ select:focus{
     toastTimer = setTimeout(() => toast.classList.remove("show"), 1400);
   }
 
-  function resize(){
-    matrix.width = innerWidth;
-    matrix.height = innerHeight;
-    canvas.width = innerWidth;
-    canvas.height = innerHeight;
-    initMatrixDrops();
-  }
+/* MATRIX */
+const matrixChars = "JERRY+-*/<>[]{}0123456789";
+const matrixSize = 16;
+let drops = [];
 
-  addEventListener("resize", resize);
-  resize();
+function initMatrixDrops(){
+  const cols = Math.floor(matrix.width / matrixSize);
+  drops = Array(cols).fill(1);
+}
 
-  /* MATRIX */
-  const matrixChars = "JERRY+-*/<>[]{}0123456789";
-  const matrixSize = 16;
-  let drops = [];
+function resize(){
+  matrix.width = innerWidth;
+  matrix.height = innerHeight;
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+  initMatrixDrops();
+}
 
-  function initMatrixDrops(){
-    const cols = Math.floor(matrix.width / matrixSize);
-    drops = Array(cols).fill(1);
-  }
+addEventListener("resize", resize);
+resize();
 
   function drawMatrix(){
     mctx.fillStyle = "rgba(0,0,0,0.08)";
