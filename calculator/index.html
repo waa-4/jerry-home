@@ -1,19 +1,60 @@
-<!DOCTYPE html><html><head>
-<meta charset="UTF-8">
-<title data-id="th-modified">Calculator</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>🧮 JERRY Calculator</title>
 
-/* JERRY cyan bottom glow */
+<style>
+:root{
+  --cyan:#00ffe1;
+  --cyanGlow:rgba(0,255,225,0.55);
+  --cyanSoft:rgba(0,255,225,0.14);
+  --bg:#020708;
+  --panel:rgba(0,0,0,0.72);
+  --text:#eaffff;
+  --muted:#8feee4;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+html,body{
+  margin:0;
+  min-height:100%;
+  background:black;
+  color:var(--cyan);
+  font-family:monospace;
+  overflow-x:hidden;
+}
+
+/* BACKGROUND */
+#matrix{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:-5;
+}
+
+#darkWash{
+  position:fixed;
+  inset:0;
+  z-index:-4;
+  background:
+    radial-gradient(circle at top, rgba(0,255,225,0.11), transparent 35%),
+    linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.92));
+}
+
 #bottomGlow{
   position:fixed;
   left:0;
   bottom:0;
   width:100%;
-  height:220px;
+  height:260px;
   pointer-events:none;
-  z-index:-1;
-
+  z-index:-3;
   background:linear-gradient(
     to top,
     rgba(0,255,225,0.25),
@@ -22,136 +63,1094 @@
   );
 }
 
-    
-html,body{
-    margin:0;height:100%;background:black;color:#00ffcc;
-    font-family:monospace;overflow:hidden;
+/* PAGE */
+.page{
+  width:min(1180px, calc(100% - 28px));
+  margin:0 auto;
+  padding:22px 0 50px;
 }
-#matrix{position:fixed;inset:0;z-index:0}
-#terminal{
-    position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-    width:92%;max-width:720px;padding:18px;
-    background:rgba(0,0,0,.85);
-    border:2px solid #00ffcc;box-shadow:0 0 30px #00ffcc;z-index:5
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:10px 0 18px;
 }
-h1{text-align:center;text-shadow:0 0 18px #00ffff;margin:0 0 10px}
-input{
-    width:100%;padding:10px;background:black;color:#00ffcc;
-    border:1px solid #00ffcc;font-size:18px
+
+.brandMini{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:var(--cyan);
+  text-shadow:0 0 14px var(--cyanGlow);
+  font-weight:bold;
 }
-#output{
-    margin-top:12px;padding:10px;min-height:90px;background:black;
-    border:1px solid #00ffcc;white-space:pre-wrap;
-    animation:glitch 2s infinite
+
+.brandDot{
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  background:var(--cyan);
+  box-shadow:0 0 18px var(--cyan);
 }
-#status{margin-top:8px;opacity:.6}
-@keyframes glitch{50%{text-shadow:-2px 0 red,2px 0 cyan}}
-#help{opacity:.6;font-size:12px;margin-top:6px}
+
+.navLinks{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.navLinks a,
+.navLinks button{
+  color:var(--text);
+  text-decoration:none;
+  border:1px solid rgba(0,255,225,0.45);
+  background:rgba(0,0,0,0.5);
+  padding:9px 12px;
+  border-radius:999px;
+  transition:0.18s;
+  font-family:monospace;
+  cursor:pointer;
+}
+
+.navLinks a:hover,
+.navLinks button:hover{
+  color:black;
+  background:var(--cyan);
+  box-shadow:0 0 18px var(--cyanGlow);
+}
+
+/* HERO */
+.hero{
+  border:1px solid rgba(0,255,225,0.45);
+  background:
+    linear-gradient(135deg, rgba(0,255,225,0.12), rgba(0,0,0,0.72)),
+    rgba(0,0,0,0.62);
+  box-shadow:0 0 30px rgba(0,255,225,0.18);
+  border-radius:24px;
+  padding:26px;
+  position:relative;
+  overflow:hidden;
+}
+
+.hero::before{
+  content:"";
+  position:absolute;
+  inset:-2px;
+  background:linear-gradient(90deg, transparent, rgba(0,255,225,0.2), transparent);
+  transform:translateX(-100%);
+  animation:scanHero 5s linear infinite;
+  pointer-events:none;
+}
+
+@keyframes scanHero{
+  from{transform:translateX(-100%);}
+  to{transform:translateX(100%);}
+}
+
+.heroContent{
+  position:relative;
+  z-index:1;
+}
+
+h1{
+  margin:0;
+  font-size:clamp(32px, 6vw, 64px);
+  line-height:0.98;
+  color:var(--cyan);
+  text-shadow:0 0 24px var(--cyanGlow);
+  letter-spacing:-2px;
+}
+
+.hero p{
+  max-width:800px;
+  color:var(--muted);
+  line-height:1.5;
+  margin:14px 0 0;
+}
+
+.statusRow{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:18px;
+}
+
+.statusPill{
+  border:1px solid rgba(0,255,225,0.45);
+  background:rgba(0,0,0,0.45);
+  color:var(--muted);
+  padding:7px 10px;
+  border-radius:999px;
+  font-size:12px;
+}
+
+/* GRID */
+.calculatorGrid{
+  display:grid;
+  grid-template-columns:1fr 0.9fr;
+  gap:16px;
+  margin-top:18px;
+}
+
+.panel{
+  background:
+    linear-gradient(180deg, rgba(0,255,225,0.06), transparent),
+    var(--panel);
+  border:1px solid rgba(0,255,225,0.5);
+  border-radius:20px;
+  padding:16px;
+  box-shadow:0 0 20px rgba(0,255,225,0.14);
+}
+
+.panel h2{
+  margin:0 0 10px;
+  color:var(--cyan);
+  text-shadow:0 0 12px var(--cyanGlow);
+}
+
+.panel p,
+.panel li{
+  color:var(--muted);
+  line-height:1.45;
+  font-size:13px;
+}
+
+/* INPUTS */
+label{
+  display:block;
+  margin:12px 0 6px;
+  color:var(--muted);
+  font-size:13px;
+}
+
+input,
+select,
+button{
+  width:100%;
+  background:rgba(0,0,0,0.72);
+  color:inherit;
+  border:1px solid currentColor;
+  border-radius:12px;
+  padding:11px 12px;
+  font-family:monospace;
+  outline:none;
+  font-size:15px;
+}
+
+input:focus,
+select:focus{
+  box-shadow:0 0 14px currentColor;
+}
+
+button{
+  cursor:pointer;
+  transition:0.16s;
+}
+
+button:hover{
+  background:currentColor;
+  color:black;
+  box-shadow:0 0 18px currentColor;
+}
+
+.buttonGrid{
+  display:grid;
+  grid-template-columns:repeat(4, 1fr);
+  gap:8px;
+  margin-top:10px;
+}
+
+.twoButtons{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:8px;
+}
+
+.output{
+  margin-top:12px;
+  min-height:115px;
+  padding:12px;
+  background:rgba(0,0,0,0.72);
+  border:1px solid currentColor;
+  border-radius:12px;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+  color:inherit;
+  animation:softGlitch 3.5s infinite;
+}
+
+@keyframes softGlitch{
+  50%{
+    text-shadow:-1px 0 rgba(255,0,80,0.8), 1px 0 rgba(0,255,255,0.75);
+  }
+}
+
+#visualCanvas{
+  width:100%;
+  height:360px;
+  background:rgba(0,0,0,0.75);
+  border:1px solid currentColor;
+  border-radius:14px;
+  box-shadow:inset 0 0 20px rgba(0,255,225,0.08);
+}
+
+.historyList{
+  max-height:260px;
+  overflow:auto;
+  display:grid;
+  gap:8px;
+}
+
+.historyItem{
+  border:1px solid rgba(0,255,225,0.22);
+  background:rgba(0,0,0,0.45);
+  border-radius:12px;
+  padding:9px 10px;
+  color:var(--muted);
+  cursor:pointer;
+}
+
+.historyItem:hover{
+  color:var(--cyan);
+  border-color:var(--cyan);
+}
+
+.code{
+  color:var(--cyan);
+}
+
+#toast{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%) translateY(20px);
+  opacity:0;
+  z-index:60;
+  background:rgba(0,0,0,0.78);
+  color:var(--cyan);
+  border:1px solid currentColor;
+  box-shadow:0 0 18px currentColor;
+  padding:10px 14px;
+  border-radius:999px;
+  transition:0.2s;
+  pointer-events:none;
+}
+
+#toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+@media(max-width:900px){
+  .topbar{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .navLinks{
+    justify-content:flex-start;
+  }
+
+  .calculatorGrid{
+    grid-template-columns:1fr;
+  }
+
+  .buttonGrid{
+    grid-template-columns:repeat(2, 1fr);
+  }
+
+  .hero{
+    padding:22px;
+  }
+}
 </style>
-<meta property="og:title" content="Calculator" data-id="th-modified"><meta property="og:image" content="https://tiiny.host/assets/logo-purple-bg.png" data-id="th-modified"><meta property="og:url" content="https://jerry-calculator.tiiny.site/" data-id="th-modified"><meta property="og:type" content="website" data-id="th-modified"><script defer="" data-domain="jerry-calculator.tiiny.site" src="https://analytics.tiiny.site/js/plausible.js"></script></head>
+</head>
 
 <body>
-<canvas id="matrix"></canvas>
 
-<div id="terminal">
-  <h1>🧮 JERRY CALCULATOR</h1>
-  <input id="input" placeholder="Try: 3+5*4 | sqrt(16) | 2x+5=17 | x^2-9=0">
-  <div id="output">Awaiting input…</div>
-  <div id="status">JERRY is idle.</div>
-  <div id="help">
-    Supported: + − * / ( ) ^ | sqrt sin cos tan log abs | pi e
+<canvas id="matrix"></canvas>
+<div id="darkWash"></div>
+<div id="bottomGlow"></div>
+<div id="toast">Copied.</div>
+
+<div class="page">
+
+  <div class="topbar">
+    <div class="brandMini">
+      <span class="brandDot"></span>
+      <span>JERRY MATH CORE</span>
+    </div>
+
+    <nav class="navLinks">
+      <a href="../">JERRY Tools</a>
+      <a href="https://waa-4.github.io/because.blocks/" target="_blank">because.blocks</a>
+      <button id="clearBtn">Clear</button>
+    </nav>
   </div>
+
+  <section class="hero">
+    <div class="heroContent">
+      <h1>🧮 JERRY CALCULATOR</h1>
+      <p>
+        Solve expressions, equations, roots, trig, logs, powers, percentages, constants, and generate
+        weird visual math patterns from numbers.
+      </p>
+
+      <div class="statusRow">
+        <span class="statusPill" id="statusPill">JERRY is idle.</span>
+        <span class="statusPill" id="modePill">Mode: Calculator</span>
+        <span class="statusPill">Visual Mode: Grid Lines</span>
+      </div>
+    </div>
+  </section>
+
+  <main class="calculatorGrid">
+
+    <section class="panel">
+      <h2>Calculator</h2>
+
+      <label for="input">Expression / Equation</label>
+      <input id="input" placeholder="Try: 3+5*4 | sqrt(16) | 2x+5=17 | x^2-9=0 | sin(pi/2)" />
+
+      <div class="buttonGrid">
+        <button data-insert="sqrt(">sqrt</button>
+        <button data-insert="sin(">sin</button>
+        <button data-insert="cos(">cos</button>
+        <button data-insert="tan(">tan</button>
+        <button data-insert="log(">ln</button>
+        <button data-insert="log10(">log10</button>
+        <button data-insert="pi">π</button>
+        <button data-insert="^">^</button>
+      </div>
+
+      <div class="twoButtons">
+        <button id="solveBtn">Solve</button>
+        <button id="copyBtn">Copy Result</button>
+      </div>
+
+      <div class="output" id="output">Awaiting input…</div>
+
+      <p>
+        Supported:
+        <span class="code">+ - * / ^ % sqrt sin cos tan asin acos atan log ln log10 abs floor ceil round min max pow pi e tau</span>
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Visual Mode</h2>
+
+      <label for="visualMode">Visual Type</label>
+      <select id="visualMode">
+        <option value="grid">Grid Lines</option>
+        <option value="circle">Circle Multiplication</option>
+        <option value="wave">Wave Field</option>
+      </select>
+
+      <label for="visualSeed">Visual Seed</label>
+      <input id="visualSeed" placeholder="Uses result or expression. Example: 137" />
+
+      <div class="twoButtons">
+        <button id="visualizeBtn">Visualize</button>
+        <button id="randomVisualBtn">Random Visual</button>
+      </div>
+
+      <canvas id="visualCanvas"></canvas>
+
+      <p>
+        Visual mode turns numbers into patterns. Bigger/different numbers create different lines,
+        waves, and weird grid motion.
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>Help</h2>
+
+      <ul>
+        <li><b>Basic:</b> <span class="code">3+5*4</span></li>
+        <li><b>Powers:</b> <span class="code">2^8</span></li>
+        <li><b>Roots:</b> <span class="code">sqrt(144)</span></li>
+        <li><b>Trig:</b> <span class="code">sin(pi/2)</span></li>
+        <li><b>Equation:</b> <span class="code">2x+5=17</span></li>
+        <li><b>Quadratic:</b> <span class="code">x^2-9=0</span></li>
+        <li><b>Percent:</b> <span class="code">50% * 80</span></li>
+      </ul>
+
+      <p>
+        For equations, JERRY first tries linear/quadratic solving. If that fails, it scans for
+        approximate real roots.
+      </p>
+    </section>
+
+    <section class="panel">
+      <h2>History</h2>
+      <div class="historyList" id="historyList">
+        <p>No history yet.</p>
+      </div>
+    </section>
+
+  </main>
+
 </div>
 
 <script>
-/* ===== MATRIX (lightweight) ===== */
-const canvas=document.getElementById("matrix"),ctx=canvas.getContext("2d");
-function resize(){canvas.width=innerWidth;canvas.height=innerHeight}
-addEventListener("resize",resize);resize();
-const chars="JERRY+-*/=x^()";
-let cols=Math.floor(canvas.width/18),drops=Array(cols).fill(0);
-setInterval(()=>{
-  ctx.fillStyle="rgba(0,0,0,.12)";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-  ctx.fillStyle="#00ffcc";ctx.font="14px monospace";
+/* =========================
+   MATRIX BACKGROUND
+========================= */
+const matrix = document.getElementById("matrix");
+const ctx = matrix.getContext("2d");
+
+let matrixSize = 16;
+let drops = [];
+
+function resizeMatrix(){
+  matrix.width = innerWidth;
+  matrix.height = innerHeight;
+
+  const columns = Math.floor(matrix.width / matrixSize);
+  drops = Array(columns).fill(1);
+}
+
+resizeMatrix();
+addEventListener("resize", resizeMatrix);
+
+const matrixChars = "JERRY+-*/=x^()0123456789";
+
+function drawMatrix(){
+  ctx.fillStyle = "rgba(0,0,0,0.1)";
+  ctx.fillRect(0,0,matrix.width,matrix.height);
+
+  ctx.fillStyle = getComputedStyle(document.body).color;
+  ctx.font = matrixSize + "px monospace";
+
   drops.forEach((y,i)=>{
-    const t=chars[Math.random()*chars.length|0];
-    ctx.fillText(t,i*18,y*18);
-    if(y*18>canvas.height&&Math.random()>.98)drops[i]=0;
+    const t = matrixChars[Math.random() * matrixChars.length | 0];
+    ctx.fillText(t, i * matrixSize, y * matrixSize);
+
+    if(y * matrixSize > matrix.height && Math.random() > 0.975){
+      drops[i] = 0;
+    }
+
     drops[i]++;
   });
-},50);
-
-/* ===== MATH ENGINE (fast, no libs) ===== */
-const input=document.getElementById("input"),
-      output=document.getElementById("output"),
-      status=document.getElementById("status");
-
-input.addEventListener("keydown",e=>{if(e.key==="Enter")solve(input.value)});
-
-function normalize(expr){
-  return expr
-    .replace(/\s+/g,"")
-    .replace(/\^/g,"**")
-    .replace(/\bpi\b/gi,"Math.PI")
-    .replace(/\be\b/gi,"Math.E")
-    .replace(/\bsqrt\(/gi,"Math.sqrt(")
-    .replace(/\bsin\(/gi,"Math.sin(")
-    .replace(/\bcos\(/gi,"Math.cos(")
-    .replace(/\btan\(/gi,"Math.tan(")
-    .replace(/\blog\(/gi,"Math.log(")
-    .replace(/\babs\(/gi,"Math.abs(");
 }
 
-function solve(expr){
-  status.textContent="JERRY is computing…";
+setInterval(drawMatrix, 33);
 
-  // Rickroll
-  if(expr.replace(/\s/g,"").toLowerCase()=="nevergonnagiveyouup"){
-    location.href="https://www.youtube.com/watch?v=dQw4w9WgXcQ";return;
+/* =========================
+   ELEMENTS
+========================= */
+const input = document.getElementById("input");
+const output = document.getElementById("output");
+const solveBtn = document.getElementById("solveBtn");
+const copyBtn = document.getElementById("copyBtn");
+const clearBtn = document.getElementById("clearBtn");
+const statusPill = document.getElementById("statusPill");
+const modePill = document.getElementById("modePill");
+const toast = document.getElementById("toast");
+
+const visualCanvas = document.getElementById("visualCanvas");
+const vctx = visualCanvas.getContext("2d");
+const visualMode = document.getElementById("visualMode");
+const visualSeed = document.getElementById("visualSeed");
+const visualizeBtn = document.getElementById("visualizeBtn");
+const randomVisualBtn = document.getElementById("randomVisualBtn");
+
+const historyList = document.getElementById("historyList");
+let history = [];
+let lastResult = null;
+
+/* =========================
+   BUTTON INSERTS
+========================= */
+document.querySelectorAll("[data-insert]").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    insertText(btn.dataset.insert);
+  });
+});
+
+function insertText(text){
+  const start = input.selectionStart;
+  const end = input.selectionEnd;
+  const before = input.value.slice(0,start);
+  const after = input.value.slice(end);
+
+  input.value = before + text + after;
+  input.focus();
+  input.selectionStart = input.selectionEnd = start + text.length;
+}
+
+/* =========================
+   SOLVER
+========================= */
+input.addEventListener("keydown", event=>{
+  if(event.key === "Enter"){
+    solve(input.value);
   }
+});
+
+solveBtn.addEventListener("click", ()=>{
+  solve(input.value);
+});
+
+function solve(rawExpr){
+  const expr = rawExpr.trim();
+
+  if(!expr){
+    output.textContent = "Awaiting input…";
+    return;
+  }
+
+  if(expr.replace(/\s/g,"").toLowerCase() === "nevergonnagiveyouup"){
+    location.href = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+    return;
+  }
+
+  statusPill.textContent = "JERRY is computing…";
 
   try{
+    let resultText = "";
+
     if(expr.includes("=")){
-      solveEquation(expr);
+      modePill.textContent = "Mode: Equation";
+      resultText = solveEquation(expr);
     }else{
-      const v=eval(normalize(expr));
-      output.textContent="= "+v;
+      modePill.textContent = "Mode: Calculator";
+      const value = evalMath(expr, 0);
+      lastResult = value;
+      resultText = "= " + formatNumber(value);
     }
-  }catch{
-    output.textContent="JERRY ERROR: Invalid input.";
+
+    output.textContent = resultText;
+    addHistory(expr, resultText);
+    setVisualSeedFromResult(expr, resultText);
+    drawVisual();
+
+    statusPill.textContent = "JERRY has finished.";
+  }catch(err){
+    console.error(err);
+    output.textContent = "JERRY ERROR: " + err.message;
+    statusPill.textContent = "JERRY found a problem.";
   }
-  status.textContent="JERRY has finished.";
 }
 
-/* Linear + Quadratic solver */
 function solveEquation(expr){
-  let [L,R]=expr.split("=");
-  let f = `(${L})-(${R})`;
+  const parts = expr.split("=");
 
-  // Detect quadratic
-  if(/x\^2/i.test(expr)){
-    // ax^2+bx+c = 0 by sampling
-    const F = x => eval(normalize(f.replace(/x/gi,`(${x})`)));
-    const c = F(0);
-    const b = F(1)-c;
-    const a = F(2)-b-c;
-    const d = b*b-4*a*c;
-    if(d<0){output.textContent="No real solutions";return;}
-    const x1=(-b+Math.sqrt(d))/(2*a);
-    const x2=(-b-Math.sqrt(d))/(2*a);
-    output.textContent=`x = ${x1} , ${x2}`;
-  }else{
-    // Linear
-    const F = x => eval(normalize(f.replace(/x/gi,`(${x})`)));
-    const b = F(0);
-    const a = F(1)-b;
-    if(a===0){output.textContent="No unique solution";return;}
-    const x = -b/a;
-    output.textContent="x = "+x;
+  if(parts.length !== 2){
+    throw new Error("Equation must contain one equals sign.");
+  }
+
+  const left = parts[0];
+  const right = parts[1];
+  const f = x => evalMath("(" + left + ")-(" + right + ")", x);
+
+  const y0 = f(0);
+  const y1 = f(1);
+  const y2 = f(2);
+
+  const a = (y2 - 2 * y1 + y0) / 2;
+  const b = y1 - a - y0;
+  const c = y0;
+
+  if(Math.abs(a) < 1e-9){
+    if(Math.abs(b) < 1e-9){
+      return Math.abs(c) < 1e-9 ? "Infinite solutions" : "No unique solution";
+    }
+
+    const x = -c / b;
+    lastResult = x;
+    return "x = " + formatNumber(x);
+  }
+
+  const discriminant = b*b - 4*a*c;
+
+  if(discriminant >= 0){
+    const x1 = (-b + Math.sqrt(discriminant)) / (2*a);
+    const x2 = (-b - Math.sqrt(discriminant)) / (2*a);
+    lastResult = x1;
+    return "x = " + formatNumber(x1) + "\nx = " + formatNumber(x2);
+  }
+
+  const roots = approximateRoots(f, -100, 100, 0.25);
+
+  if(roots.length){
+    lastResult = roots[0];
+    return "Approx roots:\n" + roots.map(root => "x ≈ " + formatNumber(root)).join("\n");
+  }
+
+  return "No real solutions found.";
+}
+
+function approximateRoots(f, min, max, step){
+  const roots = [];
+  let prevX = min;
+  let prevY = safeF(f, prevX);
+
+  for(let x = min + step; x <= max; x += step){
+    const y = safeF(f, x);
+
+    if(!Number.isFinite(prevY) || !Number.isFinite(y)){
+      prevX = x;
+      prevY = y;
+      continue;
+    }
+
+    if(Math.abs(y) < 1e-6){
+      roots.push(x);
+    }else if(prevY * y < 0){
+      roots.push(bisect(f, prevX, x));
+    }
+
+    prevX = x;
+    prevY = y;
+  }
+
+  return uniqueRoots(roots).slice(0, 8);
+}
+
+function safeF(f, x){
+  try{
+    return f(x);
+  }catch{
+    return NaN;
   }
 }
+
+function bisect(f, a, b){
+  let left = a;
+  let right = b;
+
+  for(let i = 0; i < 60; i++){
+    const mid = (left + right) / 2;
+    const yLeft = f(left);
+    const yMid = f(mid);
+
+    if(yLeft * yMid <= 0){
+      right = mid;
+    }else{
+      left = mid;
+    }
+  }
+
+  return (left + right) / 2;
+}
+
+function uniqueRoots(roots){
+  const sorted = roots.filter(Number.isFinite).sort((a,b)=>a-b);
+  const unique = [];
+
+  for(const root of sorted){
+    if(unique.length === 0 || Math.abs(root - unique[unique.length - 1]) > 0.001){
+      unique.push(root);
+    }
+  }
+
+  return unique;
+}
+
+/* =========================
+   EXPRESSION ENGINE
+========================= */
+function evalMath(expr, xValue = 0){
+  const checked = checkExpression(expr);
+  const js = normalizeExpression(checked);
+
+  const fn = new Function(
+    "x",
+    `"use strict";
+     const {
+       sin, cos, tan, asin, acos, atan,
+       sqrt, abs, floor, ceil, round,
+       min, max, pow, log, log10, exp
+     } = Math;
+     const pi = Math.PI;
+     const e = Math.E;
+     const tau = Math.PI * 2;
+     return (${js});
+    `
+  );
+
+  const value = fn(xValue);
+
+  if(typeof value !== "number" || Number.isNaN(value)){
+    throw new Error("Result is not a number.");
+  }
+
+  return value;
+}
+
+function checkExpression(expr){
+  const allowedNames = [
+    "x",
+    "sqrt",
+    "sin",
+    "cos",
+    "tan",
+    "asin",
+    "acos",
+    "atan",
+    "log",
+    "ln",
+    "log10",
+    "abs",
+    "floor",
+    "ceil",
+    "round",
+    "min",
+    "max",
+    "pow",
+    "exp",
+    "pi",
+    "e",
+    "tau"
+  ];
+
+  const names = expr.match(/[a-zA-Z_]+/g) || [];
+
+  for(const name of names){
+    if(!allowedNames.includes(name.toLowerCase())){
+      throw new Error("Unsupported word: " + name);
+    }
+  }
+
+  if(!/^[0-9a-zA-Z_+\-*/^%().,=\s×÷π]+$/.test(expr)){
+    throw new Error("Unsupported character detected.");
+  }
+
+  return expr;
+}
+
+function normalizeExpression(expr){
+  let out = expr;
+
+  out = out.replace(/π/g, "pi");
+  out = out.replace(/×/g, "*");
+  out = out.replace(/÷/g, "/");
+
+  out = out.replace(/\s+/g, "");
+  out = out.replace(/\^/g, "**");
+
+  out = out.replace(/\bln\(/gi, "log(");
+
+  out = out.replace(/(\d+(\.\d+)?)%/g, "($1/100)");
+
+  out = out.replace(/(\d)(x|pi|e|tau|\()/gi, "$1*$2");
+  out = out.replace(/(x|pi|e|tau|\))(\d)/gi, "$1*$2");
+  out = out.replace(/(x|pi|e|tau|\))(\()/gi, "$1*$2");
+
+  return out;
+}
+
+function formatNumber(value){
+  if(!Number.isFinite(value)) return String(value);
+
+  if(Math.abs(value) < 1e-12) return "0";
+
+  const rounded = Number(value.toPrecision(12));
+  return String(rounded);
+}
+
+/* =========================
+   HISTORY
+========================= */
+function addHistory(expr, result){
+  history.unshift({
+    expr,
+    result
+  });
+
+  history = history.slice(0, 12);
+  renderHistory();
+}
+
+function renderHistory(){
+  if(history.length === 0){
+    historyList.innerHTML = "<p>No history yet.</p>";
+    return;
+  }
+
+  historyList.innerHTML = "";
+
+  for(const item of history){
+    const div = document.createElement("div");
+    div.className = "historyItem";
+    div.innerHTML = `
+      <b>${escapeHTML(item.expr)}</b><br>
+      <span>${escapeHTML(item.result)}</span>
+    `;
+
+    div.addEventListener("click", ()=>{
+      input.value = item.expr;
+      output.textContent = item.result;
+      showToast("Loaded from history.");
+    });
+
+    historyList.appendChild(div);
+  }
+}
+
+function escapeHTML(text){
+  return String(text || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+/* =========================
+   COPY / CLEAR
+========================= */
+copyBtn.addEventListener("click", ()=>{
+  copyText(output.textContent);
+});
+
+clearBtn.addEventListener("click", ()=>{
+  input.value = "";
+  output.textContent = "Awaiting input…";
+  visualSeed.value = "";
+  lastResult = null;
+  clearVisual();
+  statusPill.textContent = "JERRY is idle.";
+});
+
+function copyText(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>{
+      showToast("Copied result.");
+    }).catch(()=>{
+      fallbackCopy(text);
+    });
+  }else{
+    fallbackCopy(text);
+  }
+}
+
+function fallbackCopy(text){
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  document.execCommand("copy");
+  document.body.removeChild(ta);
+  showToast("Copied result.");
+}
+
+function showToast(message){
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(()=>{
+    toast.classList.remove("show");
+  }, 1400);
+}
+
+/* =========================
+   VISUAL MODE
+========================= */
+function resizeVisual(){
+  const rect = visualCanvas.getBoundingClientRect();
+  visualCanvas.width = Math.floor(rect.width * devicePixelRatio);
+  visualCanvas.height = Math.floor(rect.height * devicePixelRatio);
+  vctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  drawVisual();
+}
+
+addEventListener("resize", resizeVisual);
+setTimeout(resizeVisual, 80);
+
+visualizeBtn.addEventListener("click", drawVisual);
+
+randomVisualBtn.addEventListener("click", ()=>{
+  visualSeed.value = Math.floor(Math.random() * 9999) + 1;
+  drawVisual();
+});
+
+visualMode.addEventListener("change", drawVisual);
+visualSeed.addEventListener("input", drawVisual);
+
+function setVisualSeedFromResult(expr, resultText){
+  if(typeof lastResult === "number" && Number.isFinite(lastResult)){
+    visualSeed.value = String(Math.abs(Math.round(lastResult * 1000)));
+  }else{
+    visualSeed.value = String(hashString(expr + resultText));
+  }
+}
+
+function getSeed(){
+  const raw = visualSeed.value.trim() || input.value.trim() || "137";
+
+  if(!Number.isNaN(Number(raw))){
+    return Math.abs(Number(raw)) || 1;
+  }
+
+  return hashString(raw);
+}
+
+function hashString(text){
+  let hash = 0;
+
+  for(let i = 0; i < text.length; i++){
+    hash = ((hash << 5) - hash) + text.charCodeAt(i);
+    hash |= 0;
+  }
+
+  return Math.abs(hash) || 1;
+}
+
+function clearVisual(){
+  const w = visualCanvas.clientWidth;
+  const h = visualCanvas.clientHeight;
+  vctx.clearRect(0,0,w,h);
+}
+
+function drawVisual(){
+  const w = visualCanvas.clientWidth;
+  const h = visualCanvas.clientHeight;
+
+  if(w <= 0 || h <= 0) return;
+
+  vctx.clearRect(0,0,w,h);
+
+  vctx.fillStyle = "rgba(0,0,0,0.92)";
+  vctx.fillRect(0,0,w,h);
+
+  drawVisualGrid(w,h);
+
+  const seed = getSeed();
+
+  if(visualMode.value === "grid"){
+    drawGridLines(w,h,seed);
+  }
+
+  if(visualMode.value === "circle"){
+    drawCircleMultiplication(w,h,seed);
+  }
+
+  if(visualMode.value === "wave"){
+    drawWaveField(w,h,seed);
+  }
+}
+
+function drawVisualGrid(w,h){
+  const color = getComputedStyle(document.body).color;
+
+  vctx.strokeStyle = color.replace(")", ", 0.12)").replace("rgb", "rgba");
+  vctx.lineWidth = 1;
+
+  const step = 24;
+
+  for(let x = 0; x <= w; x += step){
+    vctx.beginPath();
+    vctx.moveTo(x,0);
+    vctx.lineTo(x,h);
+    vctx.stroke();
+  }
+
+  for(let y = 0; y <= h; y += step){
+    vctx.beginPath();
+    vctx.moveTo(0,y);
+    vctx.lineTo(w,y);
+    vctx.stroke();
+  }
+}
+
+function drawGridLines(w,h,seed){
+  const color = getComputedStyle(document.body).color;
+  const count = 40 + (seed % 80);
+  const cols = 12 + (seed % 10);
+  const rows = 8 + (seed % 8);
+
+  vctx.strokeStyle = color;
+  vctx.lineWidth = 1.2;
+  vctx.globalAlpha = 0.72;
+
+  for(let i = 0; i < count; i++){
+    const a = (i * seed + seed) % (cols * rows);
+    const b = (i * (seed % 97 + 3) + seed * 2) % (cols * rows);
+
+    const ax = (a % cols) / (cols - 1) * w;
+    const ay = Math.floor(a / cols) / (rows - 1) * h;
+
+    const bx = (b % cols) / (cols - 1) * w;
+    const by = Math.floor(b / cols) / (rows - 1) * h;
+
+    vctx.beginPath();
+    vctx.moveTo(ax,ay);
+    vctx.lineTo(bx,by);
+    vctx.stroke();
+  }
+
+  vctx.globalAlpha = 1;
+}
+
+function drawCircleMultiplication(w,h,seed){
+  const color = getComputedStyle(document.body).color;
+  const cx = w / 2;
+  const cy = h / 2;
+  const r = Math.min(w,h) * 0.38;
+
+  const points = 80 + (seed % 90);
+  const multiplier = 2 + (seed % 40);
+
+  vctx.strokeStyle = color;
+  vctx.lineWidth = 1;
+  vctx.globalAlpha = 0.75;
+
+  for(let i = 0; i < points; i++){
+    const j = (i * multiplier) % points;
+
+    const a1 = Math.PI * 2 * i / points;
+    const a2 = Math.PI * 2 * j / points;
+
+    vctx.beginPath();
+    vctx.moveTo(cx + Math.cos(a1) * r, cy + Math.sin(a1) * r);
+    vctx.lineTo(cx + Math.cos(a2) * r, cy + Math.sin(a2) * r);
+    vctx.stroke();
+  }
+
+  vctx.globalAlpha = 1;
+}
+
+function drawWaveField(w,h,seed){
+  const color = getComputedStyle(document.body).color;
+  const step = 18;
+  const amp = 8 + (seed % 22);
+  const freq = 0.012 + (seed % 40) / 2000;
+
+  vctx.strokeStyle = color;
+  vctx.lineWidth = 1.1;
+  vctx.globalAlpha = 0.78;
+
+  for(let y = step; y < h; y += step){
+    vctx.beginPath();
+
+    for(let x = 0; x <= w; x += 8){
+      const wave = Math.sin(x * freq + y * 0.04 + seed) * amp;
+      const yy = y + wave;
+
+      if(x === 0){
+        vctx.moveTo(x, yy);
+      }else{
+        vctx.lineTo(x, yy);
+      }
+    }
+
+    vctx.stroke();
+  }
+
+  vctx.globalAlpha = 1;
+}
+
+/* INITIAL */
+renderHistory();
+drawVisual();
 </script>
 
-
-</body></html>
+</body>
+</html>
