@@ -185,6 +185,11 @@ button.active{
   box-shadow:0 0 18px var(--cyanGlow);
 }
 
+button:disabled{
+  opacity:0.45;
+  cursor:not-allowed;
+}
+
 input[type="color"]{
   height:38px;
   padding:0;
@@ -198,12 +203,6 @@ input[type="range"]{
 .row{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:8px;
-}
-
-.tripleRow{
-  display:grid;
-  grid-template-columns:1fr 1fr 1fr;
   gap:8px;
 }
 
@@ -335,8 +334,7 @@ canvas#art{
 
 @media(max-width:560px){
   .toolGrid,
-  .row,
-  .tripleRow{
+  .row{
     grid-template-columns:1fr;
   }
 
@@ -619,16 +617,6 @@ function showToast(message){
   }, 1300);
 }
 
-function initPixels(size){
-  N = size;
-  pixels = Array.from({length:N}, () => Array(N).fill(""));
-  history = [];
-  redoStack = [];
-  pushHistory();
-  updateCanvasSize();
-  render();
-}
-
 function updateCanvasSize(){
   zoom = Number(zoomRange.value);
   art.width = N * zoom;
@@ -639,6 +627,16 @@ function updateCanvasSize(){
   gridSizeRead.textContent = `${N}×${N}`;
   zoomRead.textContent = zoom;
   status.textContent = `Grid ${N}×${N} • Tool: ${tool}`;
+}
+
+function initPixels(size){
+  N = size;
+  pixels = Array.from({length:N}, () => Array(N).fill(""));
+  history = [];
+  redoStack = [];
+  updateCanvasSize();
+  pushHistory();
+  render();
 }
 
 function clonePixels(source = pixels){
@@ -674,9 +672,6 @@ function redo(){
 function updateUndoRedoButtons(){
   undoBtn.disabled = history.length <= 1;
   redoBtn.disabled = redoStack.length === 0;
-
-  undoBtn.style.opacity = undoBtn.disabled ? 0.55 : 1;
-  redoBtn.style.opacity = redoBtn.disabled ? 0.55 : 1;
 }
 
 function render(){
@@ -703,7 +698,7 @@ function render(){
     drawGrid();
   }
 
-  updateCanvasSize();
+  status.textContent = `Grid ${N}×${N} • Tool: ${tool}`;
 }
 
 function drawChecker(){
@@ -743,10 +738,8 @@ function drawGrid(){
 
 function getCellFromEvent(event){
   const rect = art.getBoundingClientRect();
-  const point = event.touches ? event.touches[0] : event;
-
-  const x = (point.clientX - rect.left) * (art.width / rect.width);
-  const y = (point.clientY - rect.top) * (art.height / rect.height);
+  const x = (event.clientX - rect.left) * (art.width / rect.width);
+  const y = (event.clientY - rect.top) * (art.height / rect.height);
 
   const cx = Math.floor(x / zoom);
   const cy = Math.floor(y / zoom);
@@ -921,7 +914,7 @@ document.querySelectorAll(".toolBtn").forEach(button=>{
       btn.classList.toggle("active", btn === button);
     });
 
-    updateCanvasSize();
+    render();
   });
 });
 
@@ -1007,8 +1000,8 @@ function remapPixels(newN){
 
   N = newN;
   pixels = next;
-  pushHistory();
   updateCanvasSize();
+  pushHistory();
   render();
   showToast("Grid resized.");
 }
@@ -1180,10 +1173,10 @@ function loadProjectData(data){
 
   history = [];
   redoStack = [];
+  updateCanvasSize();
   pushHistory();
 
   buildPalette();
-  updateCanvasSize();
   render();
 }
 
@@ -1308,8 +1301,6 @@ function mixHex(a,b,t){
 function init(){
   buildPalette();
   initPixels(N);
-  updateCanvasSize();
-  render();
   showToast("Pixel Lab ready.");
 }
 
