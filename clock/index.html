@@ -1,435 +1,1022 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>JERRY Clock</title>
-  <style>
-    body{
-      margin:0;
-      font-family: monospace;
-      background:#000;
-      color:#00ffe1;
-      overflow-x:hidden;
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>⏰ JERRY Time Lab</title>
 
-    /* bottom glow */
-    #bottomGlow{
-      position:fixed;
-      bottom:0;
-      width:100%;
-      height:220px;
-      background:linear-gradient(to top, rgba(0,255,225,0.25), transparent);
-      z-index:-1;
-      pointer-events:none;
-    }
+<style>
+:root{
+  --cyan:#00ffe1;
+  --cyanGlow:rgba(0,255,225,0.55);
+  --panel:rgba(0,0,0,0.76);
+  --text:#eaffff;
+  --muted:#8feee4;
+  --stroke:rgba(0,255,225,0.42);
+  --radius:18px;
+  --mono:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
 
-    .container{
-      width:min(980px, 92vw);
-      margin: 28px auto;
-      padding: 18px;
-      border: 2px solid #00ffe1;
-      border-radius: 18px;
-      background: rgba(0,0,0,0.55);
-      box-shadow: 0 0 18px rgba(0,255,255,0.22);
-    }
+*{box-sizing:border-box}
 
-    h1{
-      margin: 0 0 12px 0;
-      text-align:center;
-      text-shadow: 0 0 18px cyan;
-      letter-spacing: 2px;
-    }
+html,body{
+  margin:0;
+  min-height:100%;
+  background:#000;
+  color:var(--cyan);
+  font-family:var(--mono);
+  overflow-x:hidden;
+}
 
-    h2{
-      margin: 14px 0 10px 0;
-      font-weight: normal;
-      opacity: 0.95;
-      text-align:center;
-    }
+#matrix{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:-5;
+}
 
-    .tz-row{
-      display:flex;
-      justify-content:center;
-      gap:18px;
-      flex-wrap:wrap;
-      margin-top: 10px;
-    }
+#darkWash{
+  position:fixed;
+  inset:0;
+  z-index:-4;
+  background:
+    radial-gradient(circle at top, rgba(0,255,225,0.11), transparent 35%),
+    linear-gradient(to bottom, rgba(0,0,0,0.08), rgba(0,0,0,0.94));
+  pointer-events:none;
+}
 
-    .tz-clock, .tz-panel{
-      width: min(420px, 92vw);
-      padding: 14px;
-      border: 2px solid cyan;
-      border-radius: 16px;
-      background: rgba(0,0,0,0.55);
-      box-shadow: 0 0 18px rgba(0,255,255,0.18);
-    }
+#bottomGlow{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  height:260px;
+  background:linear-gradient(to top, rgba(0,255,225,0.25), rgba(0,255,225,0.1), transparent);
+  z-index:-3;
+  pointer-events:none;
+}
 
-    .tz-title{
-      font-size: 1.1rem;
-      opacity: 0.9;
-      margin-bottom: 8px;
-    }
+.page{
+  width:min(1280px, calc(100% - 24px));
+  min-height:100vh;
+  margin:0 auto;
+  padding:14px 0 36px;
+}
 
-    .tz-sub{
-      opacity: 0.8;
-      margin-top: 6px;
-    }
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
+}
 
-    .clock{
-      font-size: 2.6rem;
-      text-shadow: 0 0 18px cyan;
-      margin-top: 6px;
-    }
+.brand h1{
+  margin:0;
+  font-size:clamp(26px,4vw,48px);
+  color:var(--cyan);
+  text-shadow:0 0 24px var(--cyanGlow);
+}
 
-    .tz-time{
-      font-size: 2.2rem;
-      text-shadow: 0 0 18px cyan;
-      margin-top: 4px;
-    }
+.brand span{
+  color:var(--muted);
+  font-size:12px;
+}
 
-    select#tzSelect{
-      width: 100%;
-      padding: 10px;
-      background: black;
-      border: 2px solid cyan;
-      color: cyan;
-      font-family: monospace;
-      font-size: 1rem;
-      border-radius: 10px;
-      outline:none;
-    }
+.navLinks{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
 
-    .timer-section{
-      margin-top: 18px;
-      padding-top: 10px;
-      border-top: 1px solid rgba(0,255,225,0.25);
-    }
+.navLinks a,
+.navLinks button{
+  color:var(--text);
+  text-decoration:none;
+  border:1px solid var(--stroke);
+  background:rgba(0,0,0,0.5);
+  padding:9px 12px;
+  border-radius:999px;
+  transition:0.18s;
+  font-family:var(--mono);
+  cursor:pointer;
+}
 
-    .inputs{
-      display:flex;
-      gap:10px;
-      justify-content:center;
-      flex-wrap:wrap;
-      margin-top: 10px;
-    }
+.navLinks a:hover,
+.navLinks button:hover{
+  color:#000;
+  background:var(--cyan);
+  box-shadow:0 0 18px var(--cyanGlow);
+}
 
-    .inputs input{
-      width: 110px;
-      padding: 12px;
-      border-radius: 12px;
-      border: 2px solid cyan;
-      background: rgba(0,0,0,0.8);
-      color: cyan;
-      font-size: 1.1rem;
-      font-family: monospace;
-      outline:none;
-      text-align:center;
-      box-shadow: 0 0 12px rgba(0,255,255,0.12);
-    }
+.hero{
+  background:
+    linear-gradient(135deg, rgba(0,255,225,0.12), rgba(0,0,0,0.72)),
+    var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:24px;
+  padding:20px;
+  box-shadow:0 0 26px rgba(0,255,225,0.16);
+  margin-bottom:12px;
+}
 
-    .preview-line{
-      margin-top: 12px;
-      opacity: 0.9;
-      text-align:center;
-    }
+.localClock{
+  font-size:clamp(42px,9vw,110px);
+  line-height:1;
+  color:var(--cyan);
+  text-shadow:0 0 30px var(--cyanGlow);
+  letter-spacing:-4px;
+}
 
-    .preview-line span{
-      font-weight: bold;
-      text-shadow: 0 0 12px cyan;
-    }
+.localDate{
+  color:var(--muted);
+  font-size:clamp(14px,2vw,20px);
+  margin-top:10px;
+}
 
-    .buttons{
-      display:flex;
-      gap:10px;
-      justify-content:center;
-      flex-wrap:wrap;
-      margin-top: 12px;
-    }
+.statusRow{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:16px;
+}
 
-    .buttons button{
-      padding: 12px 18px;
-      border-radius: 12px;
-      border: 2px solid cyan;
-      background: rgba(0,0,0,0.75);
-      color: cyan;
-      font-family: monospace;
-      font-size: 1rem;
-      cursor:pointer;
-      transition: transform 0.12s;
-      box-shadow: 0 0 14px rgba(0,255,255,0.15);
-    }
+.pill{
+  border:1px solid rgba(0,255,225,0.38);
+  background:rgba(0,0,0,0.45);
+  color:var(--muted);
+  padding:8px 10px;
+  border-radius:999px;
+  font-size:12px;
+}
 
-    .buttons button:hover{
-      transform: scale(1.03);
-    }
+.grid{
+  display:grid;
+  grid-template-columns:330px 1fr;
+  gap:12px;
+}
 
-    .timer-display{
-      margin-top: 14px;
-      text-align:center;
-      font-size: 2.4rem;
-      text-shadow: 0 0 18px cyan;
-    }
+.panel{
+  background:
+    linear-gradient(180deg, rgba(0,255,225,0.06), transparent),
+    var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  padding:14px;
+  box-shadow:0 0 20px rgba(0,255,225,0.14);
+}
 
-    #timerHint{
-      text-align:center;
-      margin-top: 8px;
-      opacity: 0.85;
-    }
+.panel h2{
+  margin:0 0 10px;
+  font-size:17px;
+  color:var(--cyan);
+  text-shadow:0 0 12px var(--cyanGlow);
+}
 
-    /* Mobile scaling */
-    @media (max-width: 520px){
-      .inputs input{ width: 88px; }
-      .clock{ font-size: 2.2rem; }
-      .tz-time{ font-size: 2rem; }
-      .timer-display{ font-size: 2.1rem; }
-    }
-  </style>
+.panel p,
+.panel label,
+.smallNote{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+}
+
+label{
+  display:block;
+  margin:10px 0 6px;
+}
+
+button,
+input,
+select{
+  width:100%;
+  background:rgba(0,0,0,0.72);
+  color:inherit;
+  border:1px solid currentColor;
+  border-radius:12px;
+  padding:10px 11px;
+  font-family:var(--mono);
+  outline:none;
+}
+
+button{
+  cursor:pointer;
+  transition:0.16s;
+}
+
+button:hover{
+  background:currentColor;
+  color:black;
+  box-shadow:0 0 16px currentColor;
+}
+
+button.active{
+  background:var(--cyan);
+  color:black;
+  box-shadow:0 0 18px var(--cyanGlow);
+}
+
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.clockGrid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(250px, 1fr));
+  gap:12px;
+}
+
+.clockCard{
+  background:rgba(0,0,0,0.55);
+  border:1px solid rgba(0,255,225,0.32);
+  border-radius:16px;
+  padding:14px;
+  box-shadow:0 0 14px rgba(0,255,225,0.08);
+  position:relative;
+  overflow:hidden;
+}
+
+.clockCard::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg, transparent, rgba(0,255,225,0.08), transparent);
+  transform:translateX(-120%);
+  animation:scan 4.5s linear infinite;
+  pointer-events:none;
+}
+
+@keyframes scan{
+  from{transform:translateX(-120%)}
+  to{transform:translateX(120%)}
+}
+
+.clockCity{
+  color:var(--text);
+  font-size:16px;
+  font-weight:bold;
+  position:relative;
+  z-index:1;
+}
+
+.clockZone{
+  color:var(--muted);
+  font-size:11px;
+  margin-top:4px;
+  position:relative;
+  z-index:1;
+}
+
+.clockTime{
+  color:var(--cyan);
+  text-shadow:0 0 18px var(--cyanGlow);
+  font-size:32px;
+  margin-top:12px;
+  position:relative;
+  z-index:1;
+}
+
+.clockDate{
+  color:var(--muted);
+  font-size:12px;
+  margin-top:5px;
+  position:relative;
+  z-index:1;
+}
+
+.removeBtn{
+  margin-top:12px;
+  position:relative;
+  z-index:1;
+}
+
+.timerDisplay,
+.stopwatchDisplay{
+  font-size:38px;
+  color:var(--cyan);
+  text-shadow:0 0 20px var(--cyanGlow);
+  margin:10px 0;
+  text-align:center;
+}
+
+.alarmItem{
+  border:1px solid rgba(0,255,225,0.22);
+  background:rgba(0,0,0,0.42);
+  border-radius:12px;
+  padding:9px;
+  color:var(--muted);
+  font-size:12px;
+  margin-top:8px;
+}
+
+.alarmItem b{
+  color:var(--cyan);
+}
+
+#toast{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%) translateY(20px);
+  opacity:0;
+  z-index:60;
+  background:rgba(0,0,0,0.78);
+  color:var(--cyan);
+  border:1px solid currentColor;
+  box-shadow:0 0 18px currentColor;
+  padding:10px 14px;
+  border-radius:999px;
+  transition:0.2s;
+  pointer-events:none;
+}
+
+#toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+@media(max-width:900px){
+  .grid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:560px){
+  .row{
+    grid-template-columns:1fr;
+  }
+
+  .localClock{
+    letter-spacing:-2px;
+  }
+}
+</style>
 </head>
+
 <body>
-  <div id="bottomGlow"></div>
+<canvas id="matrix"></canvas>
+<div id="darkWash"></div>
+<div id="bottomGlow"></div>
+<div id="toast">Ready.</div>
 
-  <div class="container">
-    <h1>JERRY CLOCK</h1>
+<div class="page">
 
-    <!-- CLOCK + TIMEZONE -->
-    <div class="tz-row">
-      <div class="tz-clock">
-        <div class="tz-title">Local Time</div>
-        <div class="clock" id="clock">00:00:00</div>
-        <div class="tz-sub" id="clockDate">---</div>
-      </div>
-
-      <div class="tz-panel">
-        <div class="tz-title">Time Zone</div>
-        <select id="tzSelect"></select>
-        <div class="tz-sub">Selected:</div>
-        <div class="tz-time" id="tzTime">--:--:--</div>
-        <div class="tz-sub" id="tzDate">---</div>
-      </div>
+  <header class="topbar">
+    <div class="brand">
+      <h1>⏰ JERRY Time Lab</h1>
+      <span>local clock • world clocks • timer • stopwatch • alarms</span>
     </div>
 
-    <!-- TIMER -->
-    <div class="timer-section">
-      <h2>Countdown Timer</h2>
+    <nav class="navLinks">
+      <a href="../">JERRY Tools</a>
+      <button id="formatBtn">12H</button>
+    </nav>
+  </header>
 
-      <div class="inputs">
-        <input type="number" id="hours" placeholder="HH" min="0" max="99">
-        <input type="number" id="minutes" placeholder="MM" min="0" max="59">
-        <input type="number" id="seconds" placeholder="SS" min="0" max="59">
-      </div>
+  <section class="hero">
+    <div class="localClock" id="localClock">00:00:00</div>
+    <div class="localDate" id="localDate">Loading local time...</div>
 
-      <div class="preview-line">
-        Preview: <span id="timerPreview">00:00:00</span>
-      </div>
-
-      <div class="buttons">
-        <button id="setBtn">Set</button>
-        <button id="startBtn">Start</button>
-        <button id="pauseBtn">Pause</button>
-        <button id="resetBtn">Reset</button>
-      </div>
-
-      <div class="timer-display" id="timerDisplay">00:00:00</div>
-      <div class="tz-sub" id="timerHint">Tip: Type time → Set → Start</div>
+    <div class="statusRow">
+      <span class="pill" id="localZonePill">Local Zone</span>
+      <span class="pill" id="selectedCountPill">0 World Clocks</span>
+      <span class="pill" id="alarmCountPill">0 Alarms</span>
     </div>
-  </div>
+  </section>
 
-  <!-- Alarm sound (MUST exist or the script can error if you reference it) -->
-  <audio id="alarmSound" preload="auto">
-    <!-- You can replace this with your own mp3/ogg file -->
-    <!-- If you don't have a file yet, it still works (it just won't play sound). -->
-  </audio>
+  <main class="grid">
 
-  <script>
-    // Run AFTER everything is loaded (this prevents the “buttons not working” issue)
-    window.addEventListener("DOMContentLoaded", () => {
+    <aside class="panel">
+      <h2>Add World Clocks</h2>
 
-      // ===== Helpers =====
-      const $ = (id) => document.getElementById(id);
-      function pad2(n){ return String(n).padStart(2,'0'); }
+      <label>Preset Time Zone</label>
+      <select id="zoneSelect"></select>
 
-      function formatHMS(totalSec){
-        totalSec = Math.max(0, Math.floor(totalSec));
-        const h = Math.floor(totalSec / 3600);
-        const m = Math.floor((totalSec % 3600) / 60);
-        const s = totalSec % 60;
-        return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
-      }
+      <button id="addZoneBtn" style="margin-top:8px;">Add Selected Zone</button>
 
-      function readInputs(){
-        const h = Math.max(0, parseInt($("hours").value) || 0);
-        const m = Math.max(0, parseInt($("minutes").value) || 0);
-        const s = Math.max(0, parseInt($("seconds").value) || 0);
+      <label>Custom IANA Time Zone</label>
+      <input id="customZone" placeholder="Example: America/New_York" />
 
-        const hh = Math.min(99, h);
-        const mm = Math.min(59, m);
-        const ss = Math.min(59, s);
+      <button id="addCustomZoneBtn" style="margin-top:8px;">Add Custom Zone</button>
 
-        $("hours").value = hh || "";
-        $("minutes").value = mm || "";
-        $("seconds").value = ss || "";
+      <p class="smallNote">
+        Use IANA names like <b>America/Los_Angeles</b>, <b>Europe/London</b>, or <b>Asia/Tokyo</b>.
+      </p>
 
-        return hh * 3600 + mm * 60 + ss;
-      }
+      <h2 style="margin-top:16px;">Timer</h2>
 
-      // ===== Local clock =====
-      function updateLocalClock(){
-        const now = new Date();
-        $("clock").textContent = now.toLocaleTimeString();
-        $("clockDate").textContent = now.toLocaleDateString(undefined, {
-          weekday:"long", year:"numeric", month:"short", day:"numeric"
-        });
-      }
-      setInterval(updateLocalClock, 1000);
-      updateLocalClock();
+      <div class="row">
+        <input id="timerMinutes" type="number" min="0" max="999" value="5" />
+        <input id="timerSeconds" type="number" min="0" max="59" value="0" />
+      </div>
 
-      // ===== Time zones (BIG LIST) =====
-      const TIMEZONES = [
-        // US/Canada
-        "America/Anchorage","America/Los_Angeles","America/Vancouver","America/Denver","America/Phoenix",
-        "America/Chicago","America/Toronto","America/New_York","America/Halifax","America/St_Johns",
-        // Mexico/Central/South
-        "America/Mexico_City","America/Guatemala","America/Bogota","America/Lima","America/Santiago",
-        "America/Argentina/Buenos_Aires","America/Sao_Paulo",
-        // Europe
-        "Europe/London","Europe/Dublin","Europe/Paris","Europe/Berlin","Europe/Rome","Europe/Madrid",
-        "Europe/Amsterdam","Europe/Stockholm","Europe/Warsaw","Europe/Athens","Europe/Istanbul",
-        "Europe/Moscow",
-        // Africa
-        "Africa/Cairo","Africa/Johannesburg","Africa/Nairobi",
-        // Asia
-        "Asia/Dubai","Asia/Tehran","Asia/Karachi","Asia/Kolkata","Asia/Dhaka","Asia/Bangkok",
-        "Asia/Singapore","Asia/Hong_Kong","Asia/Shanghai","Asia/Taipei","Asia/Seoul","Asia/Tokyo",
-        // Oceania
-        "Australia/Perth","Australia/Adelaide","Australia/Sydney","Pacific/Auckland","Pacific/Honolulu"
-      ];
+      <div class="timerDisplay" id="timerDisplay">05:00</div>
 
-      const tzSelect = $("tzSelect");
-      const tzTime = $("tzTime");
-      const tzDate = $("tzDate");
+      <div class="row">
+        <button id="timerStartBtn">Start</button>
+        <button id="timerPauseBtn">Pause</button>
+      </div>
 
-      for (const tz of TIMEZONES){
-        const opt = document.createElement("option");
-        opt.value = tz;
-        opt.textContent = tz;
-        tzSelect.appendChild(opt);
-      }
+      <button id="timerResetBtn" style="margin-top:8px;">Reset Timer</button>
 
-      // default to LA if available
-      tzSelect.value = TIMEZONES.includes("America/Los_Angeles") ? "America/Los_Angeles" : TIMEZONES[0];
+      <h2 style="margin-top:16px;">Stopwatch</h2>
 
-      function updateTzClock(){
-        const tz = tzSelect.value;
-        const now = new Date();
-        try{
-          tzTime.textContent = now.toLocaleTimeString(undefined, { timeZone: tz });
-          tzDate.textContent = now.toLocaleDateString(undefined, {
-            timeZone: tz, weekday:"long", year:"numeric", month:"short", day:"numeric"
-          });
-        }catch(e){
-          tzTime.textContent = "Time zone not supported";
-          tzDate.textContent = "";
-        }
-      }
-      tzSelect.addEventListener("change", updateTzClock);
-      setInterval(updateTzClock, 1000);
-      updateTzClock();
+      <div class="stopwatchDisplay" id="stopwatchDisplay">00:00.00</div>
 
-      // ===== Timer =====
-      const alarm = $("alarmSound");
-      const preview = $("timerPreview");
-      const display = $("timerDisplay");
-      const hint = $("timerHint");
+      <div class="row">
+        <button id="stopwatchStartBtn">Start</button>
+        <button id="stopwatchLapBtn">Lap</button>
+      </div>
 
-      const setBtn = $("setBtn");
-      const startBtn = $("startBtn");
-      const pauseBtn = $("pauseBtn");
-      const resetBtn = $("resetBtn");
+      <div class="row" style="margin-top:8px;">
+        <button id="stopwatchPauseBtn">Pause</button>
+        <button id="stopwatchResetBtn">Reset</button>
+      </div>
 
-      let timerInterval = null;
-      let remaining = 0;
-      let locked = false;
-      let running = false;
+      <div id="laps"></div>
 
-      function updatePreview(){
-        const total = readInputs();
-        preview.textContent = formatHMS(total);
-        if (!locked && !running) display.textContent = formatHMS(total);
-      }
+      <h2 style="margin-top:16px;">Alarm</h2>
 
-      ["hours","minutes","seconds"].forEach(id=>{
-        $(id).addEventListener("input", updatePreview);
-      });
-      updatePreview();
+      <label>Alarm Time</label>
+      <input id="alarmTime" type="time" />
 
-      setBtn.addEventListener("click", ()=>{
-        remaining = readInputs();
-        locked = true;
-        running = false;
-        clearInterval(timerInterval);
-        timerInterval = null;
-        display.textContent = formatHMS(remaining);
-        hint.textContent = remaining > 0 ? "Locked in. Press Start." : "Set a time above 00:00:00.";
-      });
+      <label>Alarm Label</label>
+      <input id="alarmLabel" placeholder="Example: Check project" />
 
-      startBtn.addEventListener("click", ()=>{
-        if (!locked){
-          remaining = readInputs();
-        }
-        if (remaining <= 0){
-          hint.textContent = "Timer is 0. Example: 00 00 07 → Set → Start.";
-          return;
-        }
-        if (running) return;
+      <button id="addAlarmBtn" style="margin-top:8px;">Add Alarm</button>
 
-        running = true;
-        hint.textContent = "Running...";
+      <div id="alarmList"></div>
+    </aside>
 
-        clearInterval(timerInterval);
-        timerInterval = setInterval(()=>{
-          remaining--;
-          display.textContent = formatHMS(remaining);
+    <section class="panel">
+      <h2>World Clocks</h2>
+      <div class="clockGrid" id="clockGrid"></div>
+    </section>
 
-          if (remaining <= 0){
-            clearInterval(timerInterval);
-            timerInterval = null;
-            running = false;
-            locked = false;
-            display.textContent = "00:00:00";
-            hint.textContent = "DONE ✅";
+  </main>
 
-            // play alarm if there is a source loaded
-            try { alarm.currentTime = 0; alarm.play(); } catch(e){}
-          }
-        }, 1000);
-      });
+</div>
 
-      pauseBtn.addEventListener("click", ()=>{
-        if (!running) return;
-        running = false;
-        clearInterval(timerInterval);
-        timerInterval = null;
-        hint.textContent = "Paused. Press Start to continue.";
-      });
+<script>
+/* =========================
+   MATRIX BACKGROUND
+========================= */
+const matrix = document.getElementById("matrix");
+const mctx = matrix.getContext("2d");
+const matrixChars = "01<>/=+-JERRYTIME";
+const matrixSize = 16;
+let matrixDrops = [];
 
-      resetBtn.addEventListener("click", ()=>{
-        running = false;
-        locked = false;
-        clearInterval(timerInterval);
-        timerInterval = null;
-        remaining = 0;
+function resizeMatrix(){
+  matrix.width = innerWidth;
+  matrix.height = innerHeight;
+  matrixDrops = Array(Math.floor(matrix.width / matrixSize)).fill(1);
+}
 
-        display.textContent = "00:00:00";
-        preview.textContent = "00:00:00";
-        hint.textContent = "Reset. Type time → Set → Start.";
+resizeMatrix();
+addEventListener("resize", resizeMatrix);
 
-        $("hours").value = "";
-        $("minutes").value = "";
-        $("seconds").value = "";
-      });
+function drawMatrix(){
+  mctx.fillStyle = "rgba(0,0,0,0.08)";
+  mctx.fillRect(0,0,matrix.width,matrix.height);
 
+  mctx.fillStyle = getComputedStyle(document.body).color;
+  mctx.font = matrixSize + "px monospace";
+
+  for(let i = 0; i < matrixDrops.length; i++){
+    const ch = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+    mctx.fillText(ch, i * matrixSize, matrixDrops[i] * matrixSize);
+
+    if(matrixDrops[i] * matrixSize > matrix.height && Math.random() > 0.975){
+      matrixDrops[i] = 0;
+    }
+
+    matrixDrops[i]++;
+  }
+}
+
+setInterval(drawMatrix, 33);
+
+/* =========================
+   ELEMENTS
+========================= */
+const localClock = document.getElementById("localClock");
+const localDate = document.getElementById("localDate");
+const localZonePill = document.getElementById("localZonePill");
+const selectedCountPill = document.getElementById("selectedCountPill");
+const alarmCountPill = document.getElementById("alarmCountPill");
+
+const formatBtn = document.getElementById("formatBtn");
+const zoneSelect = document.getElementById("zoneSelect");
+const addZoneBtn = document.getElementById("addZoneBtn");
+const customZone = document.getElementById("customZone");
+const addCustomZoneBtn = document.getElementById("addCustomZoneBtn");
+
+const clockGrid = document.getElementById("clockGrid");
+
+const timerMinutes = document.getElementById("timerMinutes");
+const timerSeconds = document.getElementById("timerSeconds");
+const timerDisplay = document.getElementById("timerDisplay");
+const timerStartBtn = document.getElementById("timerStartBtn");
+const timerPauseBtn = document.getElementById("timerPauseBtn");
+const timerResetBtn = document.getElementById("timerResetBtn");
+
+const stopwatchDisplay = document.getElementById("stopwatchDisplay");
+const stopwatchStartBtn = document.getElementById("stopwatchStartBtn");
+const stopwatchPauseBtn = document.getElementById("stopwatchPauseBtn");
+const stopwatchResetBtn = document.getElementById("stopwatchResetBtn");
+const stopwatchLapBtn = document.getElementById("stopwatchLapBtn");
+const laps = document.getElementById("laps");
+
+const alarmTime = document.getElementById("alarmTime");
+const alarmLabel = document.getElementById("alarmLabel");
+const addAlarmBtn = document.getElementById("addAlarmBtn");
+const alarmList = document.getElementById("alarmList");
+
+const toast = document.getElementById("toast");
+
+/* =========================
+   STATE
+========================= */
+const PRESET_ZONES = [
+  ["Local", Intl.DateTimeFormat().resolvedOptions().timeZone],
+  ["Los Angeles", "America/Los_Angeles"],
+  ["New York", "America/New_York"],
+  ["Chicago", "America/Chicago"],
+  ["Denver", "America/Denver"],
+  ["London", "Europe/London"],
+  ["Paris", "Europe/Paris"],
+  ["Tokyo", "Asia/Tokyo"],
+  ["Seoul", "Asia/Seoul"],
+  ["Sydney", "Australia/Sydney"],
+  ["Dubai", "Asia/Dubai"],
+  ["UTC", "UTC"]
+];
+
+let use24h = false;
+let selectedZones = loadZones();
+let alarms = loadAlarms();
+
+let timerTotal = 300;
+let timerRemaining = 300;
+let timerRunning = false;
+let timerLast = 0;
+
+let stopwatchRunning = false;
+let stopwatchStart = 0;
+let stopwatchElapsed = 0;
+
+/* =========================
+   INIT
+========================= */
+function init(){
+  buildZoneSelect();
+  renderClockCards();
+  renderAlarms();
+  updateTimerFromInputs();
+  localZonePill.textContent = Intl.DateTimeFormat().resolvedOptions().timeZone || "Local Time";
+  tick();
+  requestAnimationFrame(loop);
+  showToast("Time Lab ready.");
+}
+
+function buildZoneSelect(){
+  zoneSelect.innerHTML = "";
+
+  for(const [label, zone] of PRESET_ZONES){
+    const option = document.createElement("option");
+    option.value = zone;
+    option.textContent = `${label} — ${zone}`;
+    zoneSelect.appendChild(option);
+  }
+}
+
+/* =========================
+   CLOCKS
+========================= */
+function tick(){
+  const now = new Date();
+
+  localClock.textContent = formatTime(now);
+  localDate.textContent = new Intl.DateTimeFormat(undefined, {
+    weekday:"long",
+    year:"numeric",
+    month:"long",
+    day:"numeric"
+  }).format(now);
+
+  updateClockCards(now);
+  checkAlarms(now);
+
+  selectedCountPill.textContent = `${selectedZones.length} World Clock${selectedZones.length === 1 ? "" : "s"}`;
+  alarmCountPill.textContent = `${alarms.length} Alarm${alarms.length === 1 ? "" : "s"}`;
+}
+
+function formatTime(date, timeZone){
+  return new Intl.DateTimeFormat(undefined, {
+    hour:"2-digit",
+    minute:"2-digit",
+    second:"2-digit",
+    hour12:!use24h,
+    timeZone
+  }).format(date);
+}
+
+function formatDate(date, timeZone){
+  return new Intl.DateTimeFormat(undefined, {
+    weekday:"short",
+    month:"short",
+    day:"numeric",
+    timeZone
+  }).format(date);
+}
+
+function isValidTimeZone(zone){
+  try{
+    new Intl.DateTimeFormat("en-US", {timeZone:zone}).format(new Date());
+    return true;
+  }catch{
+    return false;
+  }
+}
+
+function zoneLabel(zone){
+  const found = PRESET_ZONES.find(item => item[1] === zone && item[0] !== "Local");
+  return found ? found[0] : zone.replace("_"," ");
+}
+
+function addZone(zone){
+  if(!isValidTimeZone(zone)){
+    showToast("Invalid time zone.");
+    return;
+  }
+
+  if(selectedZones.includes(zone)){
+    showToast("Already added.");
+    return;
+  }
+
+  selectedZones.push(zone);
+  saveZones();
+  renderClockCards();
+  showToast("Clock added.");
+}
+
+function removeZone(zone){
+  selectedZones = selectedZones.filter(item => item !== zone);
+  saveZones();
+  renderClockCards();
+  showToast("Clock removed.");
+}
+
+function renderClockCards(){
+  clockGrid.innerHTML = "";
+
+  if(selectedZones.length === 0){
+    clockGrid.innerHTML = `<p class="smallNote">No world clocks yet. Add one from the left panel.</p>`;
+    return;
+  }
+
+  for(const zone of selectedZones){
+    const card = document.createElement("div");
+    card.className = "clockCard";
+    card.dataset.zone = zone;
+
+    card.innerHTML = `
+      <div class="clockCity">${escapeHTML(zoneLabel(zone))}</div>
+      <div class="clockZone">${escapeHTML(zone)}</div>
+      <div class="clockTime">--:--:--</div>
+      <div class="clockDate">Loading...</div>
+      <button class="removeBtn">Remove</button>
+    `;
+
+    card.querySelector(".removeBtn").addEventListener("click", ()=>{
+      removeZone(zone);
     });
-  </script>
+
+    clockGrid.appendChild(card);
+  }
+
+  updateClockCards(new Date());
+}
+
+function updateClockCards(now){
+  document.querySelectorAll(".clockCard").forEach(card=>{
+    const zone = card.dataset.zone;
+
+    card.querySelector(".clockTime").textContent = formatTime(now, zone);
+    card.querySelector(".clockDate").textContent = formatDate(now, zone);
+  });
+}
+
+addZoneBtn.addEventListener("click", ()=>{
+  addZone(zoneSelect.value);
+});
+
+addCustomZoneBtn.addEventListener("click", ()=>{
+  addZone(customZone.value.trim());
+});
+
+formatBtn.addEventListener("click", ()=>{
+  use24h = !use24h;
+  formatBtn.textContent = use24h ? "24H" : "12H";
+  tick();
+});
+
+/* =========================
+   TIMER
+========================= */
+function updateTimerFromInputs(){
+  const mins = clamp(Number(timerMinutes.value) || 0, 0, 999);
+  const secs = clamp(Number(timerSeconds.value) || 0, 0, 59);
+
+  timerTotal = mins * 60 + secs;
+  timerRemaining = timerTotal;
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay(){
+  timerDisplay.textContent = formatDuration(timerRemaining * 1000);
+}
+
+function startTimer(){
+  if(timerRemaining <= 0) updateTimerFromInputs();
+  timerRunning = true;
+  timerLast = performance.now();
+  showToast("Timer started.");
+}
+
+function pauseTimer(){
+  timerRunning = false;
+  showToast("Timer paused.");
+}
+
+function resetTimer(){
+  timerRunning = false;
+  updateTimerFromInputs();
+  showToast("Timer reset.");
+}
+
+function timerFinished(){
+  timerRunning = false;
+  timerRemaining = 0;
+  updateTimerDisplay();
+  beep();
+  showToast("Timer finished.");
+  alert("JERRY TIMER FINISHED.");
+}
+
+timerStartBtn.addEventListener("click", startTimer);
+timerPauseBtn.addEventListener("click", pauseTimer);
+timerResetBtn.addEventListener("click", resetTimer);
+timerMinutes.addEventListener("input", updateTimerFromInputs);
+timerSeconds.addEventListener("input", updateTimerFromInputs);
+
+/* =========================
+   STOPWATCH
+========================= */
+function startStopwatch(){
+  if(stopwatchRunning) return;
+  stopwatchRunning = true;
+  stopwatchStart = performance.now() - stopwatchElapsed;
+  showToast("Stopwatch started.");
+}
+
+function pauseStopwatch(){
+  stopwatchRunning = false;
+  showToast("Stopwatch paused.");
+}
+
+function resetStopwatch(){
+  stopwatchRunning = false;
+  stopwatchElapsed = 0;
+  laps.innerHTML = "";
+  updateStopwatchDisplay();
+  showToast("Stopwatch reset.");
+}
+
+function lapStopwatch(){
+  const div = document.createElement("div");
+  div.className = "alarmItem";
+  div.innerHTML = `<b>Lap</b> ${formatDuration(stopwatchElapsed)}`;
+  laps.prepend(div);
+}
+
+function updateStopwatchDisplay(){
+  stopwatchDisplay.textContent = formatDuration(stopwatchElapsed, true);
+}
+
+stopwatchStartBtn.addEventListener("click", startStopwatch);
+stopwatchPauseBtn.addEventListener("click", pauseStopwatch);
+stopwatchResetBtn.addEventListener("click", resetStopwatch);
+stopwatchLapBtn.addEventListener("click", lapStopwatch);
+
+/* =========================
+   ALARMS
+========================= */
+function addAlarm(){
+  if(!alarmTime.value){
+    showToast("Pick an alarm time.");
+    return;
+  }
+
+  alarms.push({
+    id:newId(),
+    time:alarmTime.value,
+    label:alarmLabel.value.trim() || "JERRY Alarm",
+    triggeredDate:""
+  });
+
+  saveAlarms();
+  renderAlarms();
+  showToast("Alarm added.");
+}
+
+function removeAlarm(id){
+  alarms = alarms.filter(alarm => alarm.id !== id);
+  saveAlarms();
+  renderAlarms();
+}
+
+function renderAlarms(){
+  alarmList.innerHTML = "";
+
+  if(alarms.length === 0){
+    alarmList.innerHTML = `<p class="smallNote">No alarms yet.</p>`;
+    return;
+  }
+
+  for(const alarm of alarms){
+    const item = document.createElement("div");
+    item.className = "alarmItem";
+    item.innerHTML = `
+      <b>${escapeHTML(alarm.time)}</b><br>
+      ${escapeHTML(alarm.label)}
+      <button style="margin-top:8px;">Remove</button>
+    `;
+
+    item.querySelector("button").addEventListener("click", ()=>{
+      removeAlarm(alarm.id);
+    });
+
+    alarmList.appendChild(item);
+  }
+}
+
+function checkAlarms(now){
+  const currentTime = String(now.getHours()).padStart(2,"0") + ":" + String(now.getMinutes()).padStart(2,"0");
+  const currentDate = now.toDateString();
+
+  for(const alarm of alarms){
+    if(alarm.time === currentTime && alarm.triggeredDate !== currentDate){
+      alarm.triggeredDate = currentDate;
+      saveAlarms();
+      beep();
+      alert("JERRY ALARM: " + alarm.label);
+    }
+  }
+}
+
+addAlarmBtn.addEventListener("click", addAlarm);
+
+/* =========================
+   LOOP
+========================= */
+let lastSecond = 0;
+
+function loop(now){
+  if(now - lastSecond >= 1000){
+    lastSecond = now;
+    tick();
+  }
+
+  if(timerRunning){
+    const delta = (now - timerLast) / 1000;
+    timerLast = now;
+    timerRemaining -= delta;
+
+    if(timerRemaining <= 0){
+      timerFinished();
+    }else{
+      updateTimerDisplay();
+    }
+  }
+
+  if(stopwatchRunning){
+    stopwatchElapsed = now - stopwatchStart;
+    updateStopwatchDisplay();
+  }
+
+  requestAnimationFrame(loop);
+}
+
+/* =========================
+   STORAGE
+========================= */
+function saveZones(){
+  localStorage.setItem("JERRY_TIME_LAB_ZONES", JSON.stringify(selectedZones));
+}
+
+function loadZones(){
+  try{
+    const saved = JSON.parse(localStorage.getItem("JERRY_TIME_LAB_ZONES") || "null");
+    if(Array.isArray(saved)) return saved;
+  }catch{}
+
+  return [
+    "America/New_York",
+    "Europe/London",
+    "Asia/Tokyo"
+  ];
+}
+
+function saveAlarms(){
+  localStorage.setItem("JERRY_TIME_LAB_ALARMS", JSON.stringify(alarms));
+}
+
+function loadAlarms(){
+  try{
+    const saved = JSON.parse(localStorage.getItem("JERRY_TIME_LAB_ALARMS") || "null");
+    if(Array.isArray(saved)) return saved;
+  }catch{}
+
+  return [];
+}
+
+/* =========================
+   HELPERS
+========================= */
+function formatDuration(ms, showCentiseconds = false){
+  ms = Math.max(0, ms);
+
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  if(showCentiseconds){
+    const centi = Math.floor((ms % 1000) / 10);
+    return `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}.${String(centi).padStart(2,"0")}`;
+  }
+
+  return `${String(minutes).padStart(2,"0")}:${String(seconds).padStart(2,"0")}`;
+}
+
+function clamp(value,min,max){
+  return Math.max(min, Math.min(max, value));
+}
+
+function escapeHTML(text){
+  return String(text || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function newId(){
+  return "alarm_" + Math.random().toString(36).slice(2,9) + "_" + Date.now();
+}
+
+function showToast(message){
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(()=>{
+    toast.classList.remove("show");
+  }, 1300);
+}
+
+function beep(){
+  try{
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audio = new AudioContext();
+
+    for(let i = 0; i < 3; i++){
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+
+      osc.type = "square";
+      osc.frequency.value = 520 + i * 120;
+
+      gain.gain.setValueAtTime(0.05, audio.currentTime + i * 0.18);
+      gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + i * 0.18 + 0.13);
+
+      osc.connect(gain);
+      gain.connect(audio.destination);
+
+      osc.start(audio.currentTime + i * 0.18);
+      osc.stop(audio.currentTime + i * 0.18 + 0.14);
+    }
+  }catch{}
+}
+
+init();
+</script>
 </body>
 </html>
