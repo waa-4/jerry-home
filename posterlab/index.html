@@ -1,144 +1,1252 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>JERRY Poster Lab</title>
-  <link rel="stylesheet" href="./style.css" />
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>🖼️ JERRY Poster Lab</title>
+
+<style>
+:root{
+  --cyan:#00ffe1;
+  --cyanGlow:rgba(0,255,225,0.55);
+  --panel:rgba(0,0,0,0.76);
+  --text:#eaffff;
+  --muted:#8feee4;
+  --stroke:rgba(0,255,225,0.42);
+  --radius:18px;
+  --mono:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+html,body{
+  margin:0;
+  height:100%;
+  background:#000;
+  color:var(--cyan);
+  font-family:var(--mono);
+  overflow:hidden;
+}
+
+#matrix{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:-5;
+}
+
+#darkWash{
+  position:fixed;
+  inset:0;
+  z-index:-4;
+  background:
+    radial-gradient(circle at top, rgba(0,255,225,0.11), transparent 35%),
+    linear-gradient(to bottom, rgba(0,0,0,0.08), rgba(0,0,0,0.94));
+  pointer-events:none;
+}
+
+#bottomGlow{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  height:260px;
+  background:linear-gradient(to top, rgba(0,255,225,0.25), rgba(0,255,225,0.1), transparent);
+  z-index:-3;
+  pointer-events:none;
+}
+
+.page{
+  width:min(1380px, calc(100% - 24px));
+  height:100vh;
+  margin:0 auto;
+  padding:12px 0;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  gap:10px;
+}
+
+.topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.brand h1{
+  margin:0;
+  font-size:clamp(24px,4vw,42px);
+  color:var(--cyan);
+  text-shadow:0 0 24px var(--cyanGlow);
+}
+
+.brand span{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.navLinks{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.navLinks a,
+.navLinks button{
+  color:var(--text);
+  text-decoration:none;
+  border:1px solid var(--stroke);
+  background:rgba(0,0,0,0.5);
+  padding:9px 12px;
+  border-radius:999px;
+  transition:0.18s;
+  font-family:var(--mono);
+  cursor:pointer;
+}
+
+.navLinks a:hover,
+.navLinks button:hover{
+  color:#000;
+  background:var(--cyan);
+  box-shadow:0 0 18px var(--cyanGlow);
+}
+
+.app{
+  min-height:0;
+  display:grid;
+  grid-template-columns:300px 1fr 300px;
+  gap:10px;
+}
+
+.panel{
+  min-height:0;
+  overflow:auto;
+  background:
+    linear-gradient(180deg, rgba(0,255,225,0.06), transparent),
+    var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  padding:12px;
+  box-shadow:0 0 20px rgba(0,255,225,0.14);
+}
+
+.panel h2{
+  margin:0 0 10px;
+  font-size:16px;
+  color:var(--cyan);
+  text-shadow:0 0 12px var(--cyanGlow);
+}
+
+.panel p,
+.panel label,
+.smallNote{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+}
+
+label{
+  display:block;
+  margin:10px 0 6px;
+}
+
+button,
+input,
+select,
+textarea{
+  width:100%;
+  background:rgba(0,0,0,0.72);
+  color:inherit;
+  border:1px solid currentColor;
+  border-radius:12px;
+  padding:9px 10px;
+  font-family:var(--mono);
+  outline:none;
+}
+
+button{
+  cursor:pointer;
+  transition:0.16s;
+}
+
+button:hover{
+  background:currentColor;
+  color:black;
+  box-shadow:0 0 16px currentColor;
+}
+
+button.active{
+  background:var(--cyan);
+  color:#000;
+  box-shadow:0 0 18px var(--cyanGlow);
+}
+
+textarea{
+  height:88px;
+  resize:vertical;
+  color:var(--text);
+}
+
+input[type="color"]{
+  height:38px;
+  padding:0;
+}
+
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.stage{
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.canvasPanel{
+  flex:1;
+  min-height:0;
+  background:
+    radial-gradient(circle at center, rgba(0,255,225,0.05), transparent 55%),
+    rgba(0,0,0,0.72);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  box-shadow:0 0 24px rgba(0,255,225,0.14);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:auto;
+  padding:16px;
+}
+
+#posterCanvas{
+  background:#111;
+  border:1px solid var(--cyan);
+  border-radius:14px;
+  box-shadow:0 0 24px rgba(0,255,225,0.22);
+  touch-action:none;
+  cursor:grab;
+}
+
+#posterCanvas:active{
+  cursor:grabbing;
+}
+
+.statusBar{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  align-items:center;
+}
+
+.status{
+  color:var(--muted);
+  font-size:12px;
+  padding:9px 12px;
+  background:rgba(0,0,0,0.65);
+  border:1px solid rgba(0,255,225,0.25);
+  border-radius:999px;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+.layerList{
+  display:grid;
+  gap:6px;
+  max-height:220px;
+  overflow:auto;
+}
+
+.layerItem{
+  border:1px solid rgba(0,255,225,0.22);
+  background:rgba(0,0,0,0.42);
+  border-radius:12px;
+  padding:8px;
+  color:var(--muted);
+  cursor:pointer;
+  font-size:12px;
+}
+
+.layerItem.active{
+  color:var(--cyan);
+  border-color:var(--cyan);
+  box-shadow:0 0 12px rgba(0,255,225,0.2);
+}
+
+.hiddenFile{
+  display:none;
+}
+
+#toast{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%) translateY(20px);
+  opacity:0;
+  z-index:60;
+  background:rgba(0,0,0,0.78);
+  color:var(--cyan);
+  border:1px solid currentColor;
+  box-shadow:0 0 18px currentColor;
+  padding:10px 14px;
+  border-radius:999px;
+  transition:0.2s;
+  pointer-events:none;
+}
+
+#toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+@media(max-width:1100px){
+  html,body{
+    overflow:auto;
+  }
+
+  .page{
+    height:auto;
+  }
+
+  .app{
+    grid-template-columns:1fr;
+  }
+
+  .canvasPanel{
+    min-height:560px;
+  }
+
+  .statusBar{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:580px){
+  .row{
+    grid-template-columns:1fr;
+  }
+
+  .canvasPanel{
+    min-height:420px;
+    padding:8px;
+  }
+}
+</style>
 </head>
+
 <body>
-  <div class="app">
-    <header class="topbar">
-      <div class="brand">
-        <div class="logo">J</div>
-        <div class="titles">
-          <div class="h1">JERRY Poster Lab</div>
-          <div class="h2">Simple editor • cyan glow</div>
-        </div>
-      </div>
+<canvas id="matrix"></canvas>
+<div id="darkWash"></div>
+<div id="bottomGlow"></div>
+<div id="toast">Ready.</div>
 
-      <div class="top-actions">
-        <button id="btnNew" class="btn">New</button>
-        <label class="btn file">
-          Import Image
-          <input id="importAsCanvas" type="file" accept="image/*" />
-        </label>
-        <button id="btnPNG" class="btn primary">Download PNG</button>
-        <button id="btnJPG" class="btn">Download JPG</button>
-      </div>
-    </header>
+<div class="page">
 
-    <main class="main">
-      <aside class="panel">
-        <div class="panelCard">
-          <div class="sectionTitle">Canvas</div>
-
-          <div class="row">
-            <label class="label">Preset</label>
-            <select id="preset" class="select">
-              <option value="1080x1080">Instagram Post (1080×1080)</option>
-              <option value="1280x720">YouTube Thumbnail (1280×720)</option>
-              <option value="1920x1080">HD (1920×1080)</option>
-              <option value="2480x3508">Poster A4 @300dpi (2480×3508)</option>
-              <option value="custom">Custom…</option>
-            </select>
-          </div>
-
-          <div id="customSize" class="row two" style="display:none;">
-            <div>
-              <label class="label">W</label>
-              <input id="customW" class="input" type="number" min="1" value="1280">
-            </div>
-            <div>
-              <label class="label">H</label>
-              <input id="customH" class="input" type="number" min="1" value="720">
-            </div>
-          </div>
-
-          <div class="row">
-            <label class="label">Background</label>
-            <input id="bgColor" class="color" type="color" value="#ffffff" />
-          </div>
-
-          <button id="btnApplySize" class="btn wide">Apply Size</button>
-        </div>
-
-        <div class="panelCard">
-          <div class="sectionTitle">Tools</div>
-
-          <div class="toolGrid">
-            <button id="toolDraw" class="btn tool active">✍ Draw</button>
-            <button id="toolText" class="btn tool">🅰 Text</button>
-
-            <label class="btn tool file">
-              🖼 Stamp Image
-              <input id="stampImage" type="file" accept="image/*" />
-            </label>
-
-            <button id="toolEraser" class="btn tool">🧽 Eraser</button>
-          </div>
-
-          <div class="row">
-            <label class="label">Brush</label>
-            <input id="brushSize" class="range" type="range" min="1" max="48" value="8" />
-          </div>
-
-          <div class="row">
-            <label class="label">Ink</label>
-            <input id="inkColor" class="color" type="color" value="#00ffe1" />
-          </div>
-
-          <div class="row two">
-            <div>
-              <label class="label">Text Size</label>
-              <input id="textSize" class="input" type="number" min="8" max="220" value="48">
-            </div>
-            <div>
-              <label class="label">Font</label>
-              <select id="font" class="select">
-                <option value="system-ui">System</option>
-                <option value="monospace" selected>Monospace</option>
-                <option value="Arial">Arial</option>
-                <option value="Impact">Impact</option>
-                <option value="Georgia">Georgia</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="hint">
-            <b>How it works:</b><br>
-            • Draw/Eraser: click + drag<br>
-            • Text: click canvas to place<br>
-            • Stamp: upload, then click canvas to place
-          </div>
-        </div>
-
-        <div class="panelCard">
-          <div class="sectionTitle">Quick</div>
-          <button id="btnClear" class="btn wide danger">Clear Canvas</button>
-        </div>
-      </aside>
-
-      <section class="stage">
-        <div class="stageWrap">
-          <canvas id="canvas"></canvas>
-          <div id="toast" class="toast">Ready.</div>
-        </div>
-      </section>
-    </main>
-
-    <div id="newModal" class="modal" style="display:none;">
-      <div class="modalCard">
-        <div class="modalTitle">Start a new canvas?</div>
-        <div class="modalSub">This will clear your current work.</div>
-        <div class="modalActions">
-          <button id="modalCancel" class="btn">Cancel</button>
-          <button id="modalConfirm" class="btn primary">New Canvas</button>
-        </div>
-      </div>
+  <header class="topbar">
+    <div class="brand">
+      <h1>🖼️ JERRY Poster Lab</h1>
+      <span>posters • thumbnails • cards • banners • digital chaos</span>
     </div>
-  </div>
 
-  <script src="./script.js"></script>
+    <nav class="navLinks">
+      <a href="../">JERRY Tools</a>
+      <button id="downloadBtn">Download PNG</button>
+    </nav>
+  </header>
+
+  <main class="app">
+
+    <aside class="panel">
+      <h2>Poster Setup</h2>
+
+      <label>Preset Size</label>
+      <select id="sizePreset">
+        <option value="1080x1080">Square 1080×1080</option>
+        <option value="1280x720">YouTube Thumbnail 1280×720</option>
+        <option value="1920x1080">HD 1920×1080</option>
+        <option value="1080x1920">Vertical 1080×1920</option>
+        <option value="1500x500">Wide Banner 1500×500</option>
+        <option value="custom">Custom</option>
+      </select>
+
+      <div class="row">
+        <div>
+          <label>Width</label>
+          <input id="posterW" type="number" min="128" max="4000" value="1280" />
+        </div>
+        <div>
+          <label>Height</label>
+          <input id="posterH" type="number" min="128" max="4000" value="720" />
+        </div>
+      </div>
+
+      <button id="applySizeBtn" style="margin-top:8px;">Apply Size</button>
+
+      <label>Background Color</label>
+      <input id="bgColor" type="color" value="#05070a" />
+
+      <div class="row" style="margin-top:8px;">
+        <button id="clearBtn">Clear</button>
+        <button id="fitViewBtn">Fit View</button>
+      </div>
+
+      <h2 style="margin-top:14px;">Add Stuff</h2>
+
+      <button id="addTextBtn">Add Text</button>
+      <button id="addImageBtn" style="margin-top:8px;">Add Image</button>
+      <input id="imageInput" class="hiddenFile" type="file" accept="image/*" />
+
+      <h2 style="margin-top:14px;">Project</h2>
+
+      <div class="row">
+        <button id="saveLocalBtn">Save Local</button>
+        <button id="loadLocalBtn">Load Local</button>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <button id="exportJsonBtn">Export JSON</button>
+        <button id="importJsonBtn">Import JSON</button>
+      </div>
+
+      <input id="jsonInput" class="hiddenFile" type="file" accept=".json,application/json" />
+
+      <p class="smallNote">
+        Tip: drag objects on the canvas. Use selected controls on the right to edit them.
+      </p>
+    </aside>
+
+    <section class="stage">
+      <div class="canvasPanel">
+        <canvas id="posterCanvas"></canvas>
+      </div>
+
+      <div class="statusBar">
+        <div class="status" id="status">Ready • 1280×720</div>
+        <div class="row">
+          <button id="zoomOutBtn">Zoom -</button>
+          <button id="zoomInBtn">Zoom +</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <h2>Selected Layer</h2>
+
+      <div id="noSelection" class="smallNote">Nothing selected.</div>
+
+      <div id="selectedPanel" style="display:none;">
+        <label>Name</label>
+        <input id="layerName" />
+
+        <label>Text</label>
+        <textarea id="textValue"></textarea>
+
+        <label>Color</label>
+        <input id="textColor" type="color" value="#00ffe1" />
+
+        <label>Font Size: <span id="fontSizeRead">80</span></label>
+        <input id="fontSize" type="range" min="8" max="260" value="80" />
+
+        <label>Font</label>
+        <select id="fontFamily">
+          <option value="monospace">Monospace</option>
+          <option value="Arial">Arial</option>
+          <option value="Impact">Impact</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Trebuchet MS">Trebuchet</option>
+        </select>
+
+        <label>Align</label>
+        <select id="textAlign">
+          <option value="left">Left</option>
+          <option value="center">Center</option>
+          <option value="right">Right</option>
+        </select>
+
+        <label>Scale: <span id="scaleRead">1.00</span></label>
+        <input id="layerScale" type="range" min="10" max="300" value="100" />
+
+        <label>Rotation: <span id="rotationRead">0</span>°</label>
+        <input id="layerRotation" type="range" min="-180" max="180" value="0" />
+
+        <label>Opacity: <span id="opacityRead">100</span>%</label>
+        <input id="layerOpacity" type="range" min="0" max="100" value="100" />
+
+        <div class="row" style="margin-top:8px;">
+          <button id="duplicateBtn">Duplicate</button>
+          <button id="deleteBtn">Delete</button>
+        </div>
+
+        <div class="row" style="margin-top:8px;">
+          <button id="bringForwardBtn">Forward</button>
+          <button id="sendBackwardBtn">Backward</button>
+        </div>
+      </div>
+
+      <h2 style="margin-top:14px;">Layers</h2>
+      <div class="layerList" id="layerList"></div>
+    </aside>
+
+  </main>
+</div>
+
+<script>
+/* =========================
+   MATRIX BACKGROUND
+========================= */
+const matrix = document.getElementById("matrix");
+const mctx = matrix.getContext("2d");
+const matrixChars = "01<>/=+-JERRYPOSTER";
+const matrixSize = 16;
+let matrixDrops = [];
+
+function resizeMatrix(){
+  matrix.width = innerWidth;
+  matrix.height = innerHeight;
+  matrixDrops = Array(Math.floor(matrix.width / matrixSize)).fill(1);
+}
+
+resizeMatrix();
+addEventListener("resize", resizeMatrix);
+
+function drawMatrix(){
+  mctx.fillStyle = "rgba(0,0,0,0.08)";
+  mctx.fillRect(0,0,matrix.width,matrix.height);
+
+  mctx.fillStyle = getComputedStyle(document.body).color;
+  mctx.font = matrixSize + "px monospace";
+
+  for(let i = 0; i < matrixDrops.length; i++){
+    const ch = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+    mctx.fillText(ch, i * matrixSize, matrixDrops[i] * matrixSize);
+
+    if(matrixDrops[i] * matrixSize > matrix.height && Math.random() > 0.975){
+      matrixDrops[i] = 0;
+    }
+
+    matrixDrops[i]++;
+  }
+}
+
+setInterval(drawMatrix, 33);
+
+/* =========================
+   ELEMENTS
+========================= */
+const canvas = document.getElementById("posterCanvas");
+const ctx = canvas.getContext("2d");
+
+const sizePreset = document.getElementById("sizePreset");
+const posterW = document.getElementById("posterW");
+const posterH = document.getElementById("posterH");
+const applySizeBtn = document.getElementById("applySizeBtn");
+const bgColor = document.getElementById("bgColor");
+
+const addTextBtn = document.getElementById("addTextBtn");
+const addImageBtn = document.getElementById("addImageBtn");
+const imageInput = document.getElementById("imageInput");
+
+const clearBtn = document.getElementById("clearBtn");
+const fitViewBtn = document.getElementById("fitViewBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+
+const zoomInBtn = document.getElementById("zoomInBtn");
+const zoomOutBtn = document.getElementById("zoomOutBtn");
+
+const saveLocalBtn = document.getElementById("saveLocalBtn");
+const loadLocalBtn = document.getElementById("loadLocalBtn");
+const exportJsonBtn = document.getElementById("exportJsonBtn");
+const importJsonBtn = document.getElementById("importJsonBtn");
+const jsonInput = document.getElementById("jsonInput");
+
+const status = document.getElementById("status");
+const toast = document.getElementById("toast");
+
+const noSelection = document.getElementById("noSelection");
+const selectedPanel = document.getElementById("selectedPanel");
+const layerList = document.getElementById("layerList");
+
+const layerName = document.getElementById("layerName");
+const textValue = document.getElementById("textValue");
+const textColor = document.getElementById("textColor");
+const fontSize = document.getElementById("fontSize");
+const fontSizeRead = document.getElementById("fontSizeRead");
+const fontFamily = document.getElementById("fontFamily");
+const textAlign = document.getElementById("textAlign");
+const layerScale = document.getElementById("layerScale");
+const scaleRead = document.getElementById("scaleRead");
+const layerRotation = document.getElementById("layerRotation");
+const rotationRead = document.getElementById("rotationRead");
+const layerOpacity = document.getElementById("layerOpacity");
+const opacityRead = document.getElementById("opacityRead");
+
+const duplicateBtn = document.getElementById("duplicateBtn");
+const deleteBtn = document.getElementById("deleteBtn");
+const bringForwardBtn = document.getElementById("bringForwardBtn");
+const sendBackwardBtn = document.getElementById("sendBackwardBtn");
+
+/* =========================
+   STATE
+========================= */
+let poster = {
+  width:1280,
+  height:720,
+  bg:"#05070a"
+};
+
+let layers = [];
+let selectedId = null;
+let zoom = 0.55;
+
+let dragging = false;
+let dragOffset = {x:0,y:0};
+
+function newId(){
+  return "layer_" + Math.random().toString(36).slice(2,9) + "_" + Date.now();
+}
+
+function selectedLayer(){
+  return layers.find(layer => layer.id === selectedId);
+}
+
+function showToast(message){
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(()=>{
+    toast.classList.remove("show");
+  }, 1300);
+}
+
+/* =========================
+   CANVAS SIZE / RENDER
+========================= */
+function applyCanvasSize(){
+  canvas.width = poster.width;
+  canvas.height = poster.height;
+
+  canvas.style.width = Math.round(poster.width * zoom) + "px";
+  canvas.style.height = Math.round(poster.height * zoom) + "px";
+
+  status.textContent = `Poster ${poster.width}×${poster.height} • Layers ${layers.length} • Zoom ${zoom.toFixed(2)}x`;
+}
+
+function render(){
+  applyCanvasSize();
+
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  ctx.fillStyle = poster.bg;
+  ctx.fillRect(0,0,poster.width,poster.height);
+
+  for(const layer of layers){
+    drawLayer(layer);
+  }
+
+  const selected = selectedLayer();
+  if(selected){
+    drawSelectionBox(selected);
+  }
+
+  renderLayers();
+  refreshSelectedUI(false);
+}
+
+function drawLayer(layer){
+  ctx.save();
+  ctx.globalAlpha = layer.opacity;
+  ctx.translate(layer.x, layer.y);
+  ctx.rotate(layer.rotation * Math.PI / 180);
+  ctx.scale(layer.scale, layer.scale);
+
+  if(layer.type === "text"){
+    ctx.fillStyle = layer.color;
+    ctx.font = `bold ${layer.fontSize}px ${layer.fontFamily}`;
+    ctx.textAlign = layer.align;
+    ctx.textBaseline = "middle";
+    ctx.shadowColor = layer.glow ? layer.color : "transparent";
+    ctx.shadowBlur = layer.glow ? 18 : 0;
+
+    const lines = String(layer.text || "").split("\n");
+    const lineHeight = layer.fontSize * 1.15;
+    const totalHeight = lineHeight * (lines.length - 1);
+
+    lines.forEach((line,index)=>{
+      ctx.fillText(line,0,index * lineHeight - totalHeight / 2);
+    });
+  }
+
+  if(layer.type === "image" && layer.image){
+    ctx.drawImage(
+      layer.image,
+      -layer.width / 2,
+      -layer.height / 2,
+      layer.width,
+      layer.height
+    );
+  }
+
+  ctx.restore();
+}
+
+function drawSelectionBox(layer){
+  const box = getLayerBox(layer);
+
+  ctx.save();
+  ctx.strokeStyle = "#00ffe1";
+  ctx.lineWidth = 3;
+  ctx.setLineDash([10,6]);
+  ctx.strokeRect(box.x,box.y,box.w,box.h);
+  ctx.setLineDash([]);
+
+  ctx.fillStyle = "#00ffe1";
+  ctx.fillRect(box.x - 5, box.y - 5, 10, 10);
+  ctx.fillRect(box.x + box.w - 5, box.y - 5, 10, 10);
+  ctx.fillRect(box.x - 5, box.y + box.h - 5, 10, 10);
+  ctx.fillRect(box.x + box.w - 5, box.y + box.h - 5, 10, 10);
+  ctx.restore();
+}
+
+function getLayerBox(layer){
+  if(layer.type === "image"){
+    return {
+      x:layer.x - (layer.width * layer.scale) / 2,
+      y:layer.y - (layer.height * layer.scale) / 2,
+      w:layer.width * layer.scale,
+      h:layer.height * layer.scale
+    };
+  }
+
+  ctx.save();
+  ctx.font = `bold ${layer.fontSize}px ${layer.fontFamily}`;
+  const lines = String(layer.text || "Text").split("\n");
+  const widths = lines.map(line => ctx.measureText(line).width);
+  const w = Math.max(...widths, 20) * layer.scale;
+  const h = layer.fontSize * 1.25 * lines.length * layer.scale;
+  ctx.restore();
+
+  let x = layer.x;
+  if(layer.align === "center") x -= w / 2;
+  if(layer.align === "right") x -= w;
+
+  return {
+    x,
+    y:layer.y - h / 2,
+    w,
+    h
+  };
+}
+
+/* =========================
+   ADD LAYERS
+========================= */
+addTextBtn.addEventListener("click", ()=>{
+  const layer = {
+    id:newId(),
+    type:"text",
+    name:"Text Layer",
+    text:"JERRY POSTER",
+    x:poster.width / 2,
+    y:poster.height / 2,
+    color:"#00ffe1",
+    fontSize:80,
+    fontFamily:"monospace",
+    align:"center",
+    scale:1,
+    rotation:0,
+    opacity:1,
+    glow:true
+  };
+
+  layers.push(layer);
+  selectedId = layer.id;
+  render();
+  showToast("Text added.");
+});
+
+addImageBtn.addEventListener("click", ()=> imageInput.click());
+
+imageInput.addEventListener("change", event=>{
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = ()=>{
+    const img = new Image();
+
+    img.onload = ()=>{
+      const maxW = poster.width * 0.55;
+      const maxH = poster.height * 0.55;
+      const ratio = Math.min(maxW / img.width, maxH / img.height, 1);
+
+      const layer = {
+        id:newId(),
+        type:"image",
+        name:file.name || "Image Layer",
+        image:img,
+        dataUrl:reader.result,
+        x:poster.width / 2,
+        y:poster.height / 2,
+        width:img.width * ratio,
+        height:img.height * ratio,
+        scale:1,
+        rotation:0,
+        opacity:1
+      };
+
+      layers.push(layer);
+      selectedId = layer.id;
+      render();
+      showToast("Image added.");
+    };
+
+    img.src = reader.result;
+  };
+
+  reader.readAsDataURL(file);
+});
+
+/* =========================
+   POINTERS
+========================= */
+function canvasPoint(event){
+  const rect = canvas.getBoundingClientRect();
+
+  return {
+    x:(event.clientX - rect.left) * (canvas.width / rect.width),
+    y:(event.clientY - rect.top) * (canvas.height / rect.height)
+  };
+}
+
+function hitLayer(point){
+  for(let i = layers.length - 1; i >= 0; i--){
+    const layer = layers[i];
+    const box = getLayerBox(layer);
+
+    if(
+      point.x >= box.x &&
+      point.x <= box.x + box.w &&
+      point.y >= box.y &&
+      point.y <= box.y + box.h
+    ){
+      return layer;
+    }
+  }
+
+  return null;
+}
+
+canvas.addEventListener("pointerdown", event=>{
+  event.preventDefault();
+  const p = canvasPoint(event);
+  const hit = hitLayer(p);
+
+  if(hit){
+    selectedId = hit.id;
+    dragging = true;
+    dragOffset.x = p.x - hit.x;
+    dragOffset.y = p.y - hit.y;
+    canvas.setPointerCapture(event.pointerId);
+  }else{
+    selectedId = null;
+  }
+
+  render();
+});
+
+canvas.addEventListener("pointermove", event=>{
+  if(!dragging) return;
+
+  const layer = selectedLayer();
+  if(!layer) return;
+
+  const p = canvasPoint(event);
+  layer.x = p.x - dragOffset.x;
+  layer.y = p.y - dragOffset.y;
+
+  render();
+});
+
+canvas.addEventListener("pointerup", ()=>{
+  dragging = false;
+});
+
+canvas.addEventListener("pointercancel", ()=>{
+  dragging = false;
+});
+
+/* =========================
+   SELECTED UI
+========================= */
+function refreshSelectedUI(writeValues = true){
+  const layer = selectedLayer();
+
+  if(!layer){
+    noSelection.style.display = "block";
+    selectedPanel.style.display = "none";
+    return;
+  }
+
+  noSelection.style.display = "none";
+  selectedPanel.style.display = "block";
+
+  if(!writeValues) return;
+
+  layerName.value = layer.name || "";
+  textValue.value = layer.text || "";
+  textColor.value = layer.color || "#00ffe1";
+
+  fontSize.value = layer.fontSize || 80;
+  fontSizeRead.textContent = layer.fontSize || 80;
+
+  fontFamily.value = layer.fontFamily || "monospace";
+  textAlign.value = layer.align || "center";
+
+  layerScale.value = Math.round((layer.scale || 1) * 100);
+  scaleRead.textContent = (layer.scale || 1).toFixed(2);
+
+  layerRotation.value = layer.rotation || 0;
+  rotationRead.textContent = layer.rotation || 0;
+
+  layerOpacity.value = Math.round((layer.opacity ?? 1) * 100);
+  opacityRead.textContent = Math.round((layer.opacity ?? 1) * 100);
+
+  const isText = layer.type === "text";
+  textValue.disabled = !isText;
+  textColor.disabled = !isText;
+  fontSize.disabled = !isText;
+  fontFamily.disabled = !isText;
+  textAlign.disabled = !isText;
+}
+
+function updateSelectedFromUI(){
+  const layer = selectedLayer();
+  if(!layer) return;
+
+  layer.name = layerName.value || layer.name;
+
+  if(layer.type === "text"){
+    layer.text = textValue.value;
+    layer.color = textColor.value;
+    layer.fontSize = Number(fontSize.value);
+    layer.fontFamily = fontFamily.value;
+    layer.align = textAlign.value;
+  }
+
+  layer.scale = Number(layerScale.value) / 100;
+  layer.rotation = Number(layerRotation.value);
+  layer.opacity = Number(layerOpacity.value) / 100;
+
+  fontSizeRead.textContent = fontSize.value;
+  scaleRead.textContent = layer.scale.toFixed(2);
+  rotationRead.textContent = layer.rotation;
+  opacityRead.textContent = layerOpacity.value;
+
+  render();
+}
+
+[
+  layerName,
+  textValue,
+  textColor,
+  fontSize,
+  fontFamily,
+  textAlign,
+  layerScale,
+  layerRotation,
+  layerOpacity
+].forEach(input=>{
+  input.addEventListener("input", updateSelectedFromUI);
+});
+
+/* =========================
+   LAYERS
+========================= */
+function renderLayers(){
+  layerList.innerHTML = "";
+
+  if(layers.length === 0){
+    layerList.innerHTML = `<div class="smallNote">No layers yet.</div>`;
+    return;
+  }
+
+  [...layers].reverse().forEach(layer=>{
+    const item = document.createElement("div");
+    item.className = "layerItem";
+    item.classList.toggle("active", layer.id === selectedId);
+    item.textContent = `${layer.type.toUpperCase()} • ${layer.name || "Layer"}`;
+
+    item.addEventListener("click", ()=>{
+      selectedId = layer.id;
+      render();
+    });
+
+    layerList.appendChild(item);
+  });
+}
+
+duplicateBtn.addEventListener("click", ()=>{
+  const layer = selectedLayer();
+  if(!layer) return;
+
+  const copy = {
+    ...layer,
+    id:newId(),
+    name:(layer.name || "Layer") + " Copy",
+    x:layer.x + 40,
+    y:layer.y + 40
+  };
+
+  if(layer.type === "image"){
+    copy.image = layer.image;
+    copy.dataUrl = layer.dataUrl;
+  }
+
+  layers.push(copy);
+  selectedId = copy.id;
+  render();
+  showToast("Duplicated.");
+});
+
+deleteBtn.addEventListener("click", ()=>{
+  layers = layers.filter(layer => layer.id !== selectedId);
+  selectedId = null;
+  render();
+  showToast("Deleted.");
+});
+
+bringForwardBtn.addEventListener("click", ()=>{
+  const index = layers.findIndex(layer => layer.id === selectedId);
+  if(index < 0 || index >= layers.length - 1) return;
+
+  [layers[index], layers[index + 1]] = [layers[index + 1], layers[index]];
+  render();
+});
+
+sendBackwardBtn.addEventListener("click", ()=>{
+  const index = layers.findIndex(layer => layer.id === selectedId);
+  if(index <= 0) return;
+
+  [layers[index], layers[index - 1]] = [layers[index - 1], layers[index]];
+  render();
+});
+
+/* =========================
+   POSTER SIZE / VIEW
+========================= */
+sizePreset.addEventListener("change", ()=>{
+  if(sizePreset.value === "custom") return;
+
+  const [w,h] = sizePreset.value.split("x").map(Number);
+  posterW.value = w;
+  posterH.value = h;
+});
+
+applySizeBtn.addEventListener("click", ()=>{
+  poster.width = clamp(Number(posterW.value) || 1280, 128, 4000);
+  poster.height = clamp(Number(posterH.value) || 720, 128, 4000);
+  fitView();
+  render();
+  showToast("Poster size updated.");
+});
+
+bgColor.addEventListener("input", ()=>{
+  poster.bg = bgColor.value;
+  render();
+});
+
+function fitView(){
+  const panel = canvas.parentElement;
+  const maxW = panel.clientWidth - 40;
+  const maxH = panel.clientHeight - 40;
+
+  zoom = Math.min(maxW / poster.width, maxH / poster.height, 1);
+  zoom = clamp(zoom, 0.08, 1.2);
+}
+
+fitViewBtn.addEventListener("click", ()=>{
+  fitView();
+  render();
+});
+
+zoomInBtn.addEventListener("click", ()=>{
+  zoom = clamp(zoom * 1.15, 0.08, 3);
+  render();
+});
+
+zoomOutBtn.addEventListener("click", ()=>{
+  zoom = clamp(zoom * 0.85, 0.08, 3);
+  render();
+});
+
+clearBtn.addEventListener("click", ()=>{
+  if(!confirm("Clear poster?")) return;
+  layers = [];
+  selectedId = null;
+  render();
+});
+
+/* =========================
+   EXPORT / IMPORT
+========================= */
+downloadBtn.addEventListener("click", ()=>{
+  selectedId = null;
+  render();
+
+  const a = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download = `jerry-poster-${poster.width}x${poster.height}-${stamp}.png`;
+  a.href = canvas.toDataURL("image/png");
+  a.click();
+
+  showToast("Downloaded PNG.");
+});
+
+function projectData(){
+  return {
+    version:1,
+    poster,
+    layers:layers.map(layer=>{
+      const copy = {...layer};
+      delete copy.image;
+      return copy;
+    })
+  };
+}
+
+function loadProject(data){
+  poster = data.poster || poster;
+  posterW.value = poster.width;
+  posterH.value = poster.height;
+  bgColor.value = poster.bg || "#05070a";
+
+  layers = (data.layers || []).map(layer => ({...layer}));
+  selectedId = null;
+
+  const imageLoads = layers.map(layer=>{
+    if(layer.type !== "image" || !layer.dataUrl) return Promise.resolve();
+
+    return new Promise(resolve=>{
+      const img = new Image();
+      img.onload = ()=>{
+        layer.image = img;
+        resolve();
+      };
+      img.onerror = resolve;
+      img.src = layer.dataUrl;
+    });
+  });
+
+  Promise.all(imageLoads).then(()=>{
+    fitView();
+    render();
+    showToast("Project loaded.");
+  });
+}
+
+saveLocalBtn.addEventListener("click", ()=>{
+  localStorage.setItem("JERRY_POSTER_LAB_v1", JSON.stringify(projectData()));
+  showToast("Saved locally.");
+});
+
+loadLocalBtn.addEventListener("click", ()=>{
+  const raw = localStorage.getItem("JERRY_POSTER_LAB_v1");
+  if(!raw){
+    showToast("No local save found.");
+    return;
+  }
+
+  try{
+    loadProject(JSON.parse(raw));
+  }catch(error){
+    console.error(error);
+    showToast("Load failed.");
+  }
+});
+
+exportJsonBtn.addEventListener("click", ()=>{
+  const blob = new Blob([JSON.stringify(projectData(), null, 2)], {
+    type:"application/json"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+  a.download = `jerry-poster-project-${stamp}.json`;
+  a.href = url;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  showToast("Exported JSON.");
+});
+
+importJsonBtn.addEventListener("click", ()=> jsonInput.click());
+
+jsonInput.addEventListener("change", event=>{
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = ()=>{
+    try{
+      loadProject(JSON.parse(reader.result));
+    }catch(error){
+      console.error(error);
+      showToast("Invalid project JSON.");
+    }
+  };
+
+  reader.readAsText(file);
+});
+
+/* =========================
+   KEYBOARD
+========================= */
+addEventListener("keydown", event=>{
+  if(event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+
+  if(event.key === "Delete" || event.key === "Backspace"){
+    if(selectedId){
+      layers = layers.filter(layer => layer.id !== selectedId);
+      selectedId = null;
+      render();
+    }
+  }
+});
+
+/* =========================
+   HELPERS / INIT
+========================= */
+function clamp(value,min,max){
+  return Math.max(min, Math.min(max, value));
+}
+
+function init(){
+  posterW.value = poster.width;
+  posterH.value = poster.height;
+  bgColor.value = poster.bg;
+
+  fitView();
+  render();
+  showToast("Poster Lab ready.");
+}
+
+addEventListener("resize", ()=>{
+  fitView();
+  render();
+});
+
+init();
+</script>
 </body>
 </html>
