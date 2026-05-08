@@ -1,239 +1,566 @@
-<!DOCTYPE html><html lang="en"><head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>JERRY Gravity Lab (Online)</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>🌌 JERRY Gravity Lab</title>
+
 <style>
-  :root{ --ui:#00ffcc; --bg:#000; --glass:rgba(0,0,0,.78); }
+:root{
+  --cyan:#00ffe1;
+  --cyanGlow:rgba(0,255,225,0.55);
+  --cyanSoft:rgba(0,255,225,0.14);
+  --bg:#020708;
+  --panel:rgba(0,0,0,0.78);
+  --panel2:rgba(0,255,225,0.055);
+  --text:#eaffff;
+  --muted:#8feee4;
+  --warn:#ffd966;
+  --danger:#ff4fd8;
+}
 
-  html,body{
-    margin:0; width:100%; height:100%;
-    background:var(--bg); color:var(--ui);
-    font-family:monospace; overflow:hidden;
-    touch-action: manipulation;
-  }
+*{
+  box-sizing:border-box;
+}
 
-  canvas{
-    position:fixed; inset:0;
-    z-index:0;
-    display:block;
-    touch-action:none;
-  }
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  background:black;
+  color:var(--cyan);
+  font-family:monospace;
+  overflow:hidden;
+  touch-action:manipulation;
+}
 
-  #ui{
-    position:fixed; left:8px; right:8px; top:8px;
-    background:var(--glass);
-    border:1px solid currentColor;
-    padding:8px;
-    z-index:9999;
-    display:flex; flex-wrap:wrap; gap:6px;
-    max-height:50vh; overflow:auto;
-    border-radius:10px;
-    backdrop-filter: blur(6px);
-    box-shadow:0 0 18px rgba(0,255,204,.25);
-  }
-  #ui.ui-collapsed{ max-height:52px; overflow:hidden; }
+#matrix,
+#sim{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  display:block;
+}
 
-  #uiHeader{
-    width:100%;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-  }
-  #brand{display:flex; flex-direction:column; gap:2px; user-select:none;}
-  #brand b{font-size:14px; letter-spacing:.5px;}
-  #brand small{opacity:.85; font-size:12px;}
+#matrix{ z-index:-5; }
+#sim{ z-index:0; touch-action:none; }
 
-  input,button,select,label{ font-family:inherit; font-size:13px; color:inherit; }
-  button,input,select{
-    background:rgba(0,0,0,.85);
-    border:1px solid currentColor;
-    padding:8px;
-    border-radius:10px;
-    outline:none;
-  }
-  button{cursor:pointer; position:relative; overflow:hidden;}
-  button:active, input:active, select:active{transform:scale(.985);}
-  label{cursor:pointer;}
+#darkWash{
+  position:fixed;
+  inset:0;
+  z-index:-4;
+  background:
+    radial-gradient(circle at top, rgba(0,255,225,0.11), transparent 35%),
+    linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.92));
+  pointer-events:none;
+}
 
-  .row{display:flex; flex-wrap:wrap; gap:6px; width:100%;}
-  .grow{flex:2; min-width:140px;}
-  .btn{flex:1; min-width:86px;}
-  .chip{
-    display:flex; align-items:center; gap:6px;
-    padding:6px 10px; border-radius:10px;
-    border:1px solid currentColor;
-    background:rgba(0,0,0,.5);
-  }
-  .chip input{accent-color: currentColor;}
-  .sliderWrap{
-    display:flex; align-items:center; gap:8px;
-    padding:6px 10px; border-radius:10px;
-    border:1px solid currentColor; background:rgba(0,0,0,.5);
-  }
-  .sliderWrap input[type="range"]{width:140px;}
-  .sep{width:100%; height:1px; background:rgba(0,255,204,.2); margin:2px 0;}
+#bottomGlow{
+  position:fixed;
+  left:0;
+  bottom:0;
+  width:100%;
+  height:260px;
+  pointer-events:none;
+  z-index:-3;
+  background:linear-gradient(
+    to top,
+    rgba(0,255,225,0.25),
+    rgba(0,255,225,0.12),
+    transparent
+  );
+}
 
-  #collapseBtn{
-    border:1px solid currentColor;
-    background:transparent;
-    color:inherit;
-    padding:6px 10px;
-    border-radius:10px;
-    cursor:pointer;
-    min-width:44px;
-  }
+/* MAIN WRAPPER */
+.hudWrap{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:20;
+}
 
-  #toast{
-    position:fixed;
-    left:50%;
-    bottom:14px;
-    transform:translateX(-50%);
-    background:rgba(0,0,0,.85);
-    border:1px solid currentColor;
-    padding:8px 12px;
-    border-radius:999px;
-    z-index:10000;
+/* TOP LEFT CONTROL PANEL */
+#controlPanel{
+  position:fixed;
+  left:14px;
+  top:14px;
+  width:min(430px, calc(100vw - 28px));
+  max-height:calc(100vh - 28px);
+  overflow:auto;
+  background:
+    linear-gradient(180deg, rgba(0,255,225,0.06), transparent),
+    var(--panel);
+  border:1px solid rgba(0,255,225,0.5);
+  border-radius:22px;
+  box-shadow:0 0 22px rgba(0,255,225,0.16);
+  padding:14px;
+  pointer-events:auto;
+  backdrop-filter:blur(8px);
+}
+
+#controlPanel.collapsed{
+  max-height:64px;
+  overflow:hidden;
+}
+
+.panelTop{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.brand{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+.brand b{
+  font-size:17px;
+  color:var(--text);
+  text-shadow:0 0 14px var(--cyanGlow);
+}
+
+.brand small{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.topButtons{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+
+.iconBtn{
+  width:auto;
+  min-width:44px;
+  padding:8px 10px;
+}
+
+.section{
+  margin-top:12px;
+  border-top:1px solid rgba(0,255,225,0.12);
+  padding-top:12px;
+}
+
+.row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  width:100%;
+}
+
+.grow{
+  flex:1 1 160px;
+}
+
+button,input,select{
+  background:rgba(0,0,0,0.75);
+  color:inherit;
+  border:1px solid currentColor;
+  border-radius:12px;
+  padding:10px 11px;
+  font-family:inherit;
+  outline:none;
+}
+
+button{
+  cursor:pointer;
+  transition:0.16s;
+}
+
+button:hover{
+  background:currentColor;
+  color:black;
+  box-shadow:0 0 16px currentColor;
+}
+
+button:active{
+  transform:scale(0.985);
+}
+
+input:focus,
+select:focus{
+  box-shadow:0 0 14px currentColor;
+}
+
+.modeRow{
+  display:grid;
+  grid-template-columns:repeat(5, 1fr);
+  gap:8px;
+}
+
+.modeBtn.active{
+  background:var(--cyan);
+  color:black;
+  box-shadow:0 0 18px var(--cyanGlow);
+}
+
+.chipRow{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.chip{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  padding:7px 10px;
+  border-radius:999px;
+  border:1px solid rgba(0,255,225,0.35);
+  background:rgba(0,0,0,0.45);
+  color:var(--muted);
+  font-size:12px;
+}
+
+.chip input{
+  width:auto;
+  accent-color:currentColor;
+}
+
+.sliderCard{
+  flex:1 1 180px;
+  border:1px solid rgba(0,255,225,0.22);
+  background:rgba(255,255,255,0.03);
+  border-radius:14px;
+  padding:10px;
+}
+
+.sliderCard label{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-bottom:8px;
+  color:var(--muted);
+  font-size:12px;
+}
+
+.sliderCard input[type="range"]{
+  width:100%;
+  padding:0;
+  background:transparent;
+  border:none;
+}
+
+.smallNote{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+  margin-top:8px;
+}
+
+/* TOP RIGHT STATS */
+#statsPanel{
+  position:fixed;
+  top:14px;
+  right:14px;
+  display:grid;
+  gap:8px;
+  pointer-events:none;
+}
+
+.statCard{
+  min-width:170px;
+  background:rgba(0,0,0,0.7);
+  border:1px solid rgba(0,255,225,0.4);
+  border-radius:14px;
+  padding:10px 12px;
+  box-shadow:0 0 18px rgba(0,255,225,0.12);
+}
+
+.statCard b{
+  display:block;
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:4px;
+}
+
+.statCard span{
+  color:var(--text);
+  font-size:16px;
+  text-shadow:0 0 12px var(--cyanGlow);
+}
+
+/* BOTTOM HELP PANEL */
+#helpPanel{
+  position:fixed;
+  right:14px;
+  bottom:14px;
+  width:min(320px, calc(100vw - 28px));
+  background:rgba(0,0,0,0.72);
+  border:1px solid rgba(0,255,225,0.35);
+  border-radius:18px;
+  padding:12px;
+  pointer-events:auto;
+  box-shadow:0 0 18px rgba(0,255,225,0.1);
+}
+
+#helpPanel h3{
+  margin:0 0 8px;
+  color:var(--text);
+  font-size:14px;
+}
+
+#helpPanel p,
+#helpPanel li{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+}
+
+#helpPanel ul{
+  margin:8px 0 0 16px;
+  padding:0;
+}
+
+/* TOAST */
+#toast{
+  position:fixed;
+  left:50%;
+  bottom:14px;
+  transform:translateX(-50%) translateY(20px);
+  background:rgba(0,0,0,0.86);
+  border:1px solid currentColor;
+  box-shadow:0 0 18px currentColor;
+  padding:9px 14px;
+  border-radius:999px;
+  z-index:50;
+  opacity:0;
+  transition:0.2s;
+  pointer-events:none;
+  max-width:min(92vw, 540px);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+#toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+/* RIPPLE */
+.ripple{
+  position:absolute;
+  border-radius:50%;
+  transform:scale(0);
+  pointer-events:none;
+  background:rgba(255,255,255,.35);
+  mix-blend-mode:screen;
+  animation:ripple .65s ease-out forwards;
+}
+
+@keyframes ripple{
+  to{
+    transform:scale(3.2);
     opacity:0;
-    pointer-events:none;
-    transition:opacity .2s, transform .2s;
-    font-size:12px;
-    box-shadow: 0 0 18px rgba(0,255,204,.18);
-    max-width:min(92vw, 520px);
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
   }
-  #toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
+}
 
-  #netStatus{
-    padding:6px 10px;
-    border-radius:999px;
-    border:1px solid currentColor;
-    background:rgba(0,0,0,.5);
-    font-size:12px;
-    display:flex;
-    gap:8px;
-    align-items:center;
-    max-width:42vw;
+@media(max-width:920px){
+  #statsPanel{
+    top:auto;
+    right:auto;
+    left:14px;
+    bottom:14px;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    width:min(430px, calc(100vw - 28px));
   }
-  #netText{
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    max-width:34vw;
-    display:inline-block;
-  }
-  .dot{width:10px;height:10px;border-radius:50%; background:#666;}
-  .dot.ok{ background:#00ff66; box-shadow:0 0 12px rgba(0,255,102,.6); }
-  .dot.warn{ background:#ffd000; box-shadow:0 0 12px rgba(255,208,0,.6); }
-  .dot.bad{ background:#ff3366; box-shadow:0 0 12px rgba(255,51,102,.6); }
 
-  .ripple{
-    position:absolute;
-    border-radius:50%;
-    transform:scale(0);
-    pointer-events:none;
-    background:rgba(255,255,255,.35);
-    mix-blend-mode: screen;
-    animation:ripple .65s ease-out forwards;
+  #helpPanel{
+    display:none;
   }
-  @keyframes ripple{ to{ transform:scale(3.2); opacity:0; } }
+}
 
-  @media (max-width:620px){
-    #ui{max-height:60vh;}
-    .btn{min-width:72px;}
-    .sliderWrap input[type="range"]{width:110px;}
+@media(max-width:680px){
+  #controlPanel{
+    width:calc(100vw - 20px);
+    left:10px;
+    top:10px;
+    padding:12px;
   }
+
+  .modeRow{
+    grid-template-columns:repeat(2, 1fr);
+  }
+
+  #statsPanel{
+    width:calc(100vw - 20px);
+    left:10px;
+    bottom:10px;
+  }
+
+  .statCard{
+    min-width:0;
+  }
+}
 </style>
 </head>
 <body>
 
-<div id="ui">
-  <div id="uiHeader">
-    <div id="brand">
-      <b>🧪 JERRY Gravity Lab (Online)</b>
-      <small>type → spawn • delete → remove • rooms</small>
-    </div>
-    <div style="display:flex; gap:6px; align-items:center;">
-      <div id="netStatus" title="Connection status">
-        <span class="dot" id="netDot"></span>
-        <span id="netText">PRIVATE</span>
+<canvas id="matrix"></canvas>
+<canvas id="sim"></canvas>
+<div id="darkWash"></div>
+<div id="bottomGlow"></div>
+
+<div class="hudWrap">
+  <div id="controlPanel">
+    <div class="panelTop">
+      <div class="brand">
+        <b>🌌 JERRY Gravity Lab</b>
+        <small>physics sandbox • text arena • weird simulation chaos</small>
       </div>
-      <button id="collapseBtn" title="Collapse UI">⬆️</button>
+
+      <div class="topButtons">
+        <button class="iconBtn" id="collapseBtn" title="Collapse panel">⬆️</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="row">
+        <input id="textInput" class="grow" placeholder="Type here to spawn text..." autocomplete="off" autocorrect="off" spellcheck="false" />
+        <button id="resetTextBtn">Reset Text</button>
+        <button id="resetPosBtn">Reset Pos</button>
+        <button id="saveBtn">Save</button>
+      </div>
+      <div class="smallNote">
+        Every character becomes a physics object. Delete text to remove objects.
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="modeRow">
+        <button class="modeBtn active" data-mode="push">Push</button>
+        <button class="modeBtn" data-mode="pull">Pull</button>
+        <button class="modeBtn" data-mode="tornado">Tornado</button>
+        <button class="modeBtn" data-mode="blackhole">Black Hole</button>
+        <button class="modeBtn" data-mode="circle">Circle</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="chipRow">
+        <label class="chip"><input type="checkbox" id="gravityToggle" checked /> Gravity</label>
+        <label class="chip"><input type="checkbox" id="collideToggle" checked /> Collisions</label>
+        <label class="chip"><input type="checkbox" id="tiltToggle" /> Tilt</label>
+        <label class="chip"><input type="checkbox" id="glowToggle" checked /> Glow</label>
+        <label class="chip"><input type="checkbox" id="partyToggle" /> Party</label>
+        <label class="chip"><input type="checkbox" id="oldPhysicsToggle" /> Old Physics</label>
+        <label class="chip"><input type="checkbox" id="trailsToggle" /> Trails</label>
+        <label class="chip"><input type="checkbox" id="lessLag" /> Less Lag</label>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="row">
+        <label class="sliderCard">
+          <span style="display:flex;justify-content:space-between;"><span>Max Objects</span><b id="maxObjRead">80</b></span>
+          <input type="range" id="maxObjects" min="20" max="300" value="80" step="1" />
+        </label>
+
+        <label class="sliderCard">
+          <span style="display:flex;justify-content:space-between;"><span>Force Power</span><b id="forceRead">90</b></span>
+          <input type="range" id="forceStrength" min="20" max="200" value="90" step="1" />
+        </label>
+
+        <label class="sliderCard">
+          <span style="display:flex;justify-content:space-between;"><span>Bounce</span><b id="bounceRead">90</b></span>
+          <input type="range" id="bounceStrength" min="20" max="100" value="90" step="1" />
+        </label>
+
+        <label class="sliderCard">
+          <span style="display:flex;justify-content:space-between;"><span>Net FPS</span><b id="netFpsRead">10</b></span>
+          <input type="range" id="netFps" min="2" max="20" value="10" step="1" />
+        </label>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <label class="sliderCard">
+          <span style="display:flex;justify-content:space-between;"><span>Net Max</span><b id="netMaxRead">140</b></span>
+          <input type="range" id="netMax" min="20" max="300" value="140" step="1" />
+        </label>
+
+        <label class="sliderCard">
+          <span style="display:flex;justify-content:space-between;"><span>Text Color</span><b>Pick</b></span>
+          <input type="color" id="solidColor" value="#00ffe1" style="height:34px;padding:0;background:transparent;border:none;" />
+        </label>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="row">
+        <input id="roomCode" class="grow" placeholder="Room Code (e.g. JERRY1)" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+        <button id="createBtn">Create</button>
+        <button id="joinBtn">Join</button>
+        <button id="leaveBtn">Leave</button>
+      </div>
+
+      <div class="chipRow" style="margin-top:8px;">
+        <label class="chip"><input type="checkbox" id="privateLobby" checked /> Private Lobby</label>
+        <label class="chip"><input type="checkbox" id="showOthers" checked /> Show Others</label>
+      </div>
+
+      <div class="smallNote">
+        If your online server is offline, the single-player sandbox still works normally.
+      </div>
     </div>
   </div>
 
-  <div class="row">
-    <input id="roomCode" class="grow" placeholder="Room Code (e.g. JERRY1)" autocomplete="off" autocapitalize="characters" spellcheck="false">
-    <button class="btn" id="createBtn">Create</button>
-    <button class="btn" id="joinBtn">Join</button>
-    <button class="btn" id="leaveBtn">Leave</button>
+  <div id="statsPanel">
+    <div class="statCard">
+      <b>MODE</b>
+      <span id="modeStat">PUSH</span>
+    </div>
+
+    <div class="statCard">
+      <b>OBJECTS</b>
+      <span id="objectsStat">0</span>
+    </div>
+
+    <div class="statCard">
+      <b>FPS</b>
+      <span id="fpsStat">0</span>
+    </div>
+
+    <div class="statCard">
+      <b>NETWORK</b>
+      <span id="netStat">PRIVATE</span>
+    </div>
   </div>
 
-  <div class="row">
-    <label class="chip"><input type="checkbox" id="privateLobby" checked=""> Private Lobby</label>
-    <label class="chip"><input type="checkbox" id="showOthers" checked=""> Show Others</label>
-  </div>
-
-  <div class="sep"></div>
-
-  <div class="row">
-    <input id="textInput" class="grow" placeholder="Type here…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    <button class="btn" id="resetTextBtn">Reset Text</button>
-    <button class="btn" id="resetPosBtn">Reset Position</button>
-    <button class="btn" id="saveBtn">Save Image</button>
-  </div>
-
-  <div class="sep"></div>
-
-  <div class="row">
-    <button class="btn modeBtn" data-mode="push">Push</button>
-    <button class="btn modeBtn" data-mode="pull">Pull</button>
-    <button class="btn modeBtn" data-mode="tornado">Tornado</button>
-    <button class="btn modeBtn" data-mode="blackhole">Black Hole</button>
-    <button class="btn modeBtn" data-mode="circle">Circle</button>
-  </div>
-
-  <div class="row">
-    <label class="chip"><input type="checkbox" id="gravityToggle" checked=""> Gravity</label>
-    <label class="chip"><input type="checkbox" id="collideToggle" checked=""> Collisions</label>
-    <label class="chip"><input type="checkbox" id="tiltToggle"> Tilt</label>
-    <label class="chip"><input type="checkbox" id="glowToggle" checked=""> Glow</label>
-    <label class="chip"><input type="checkbox" id="partyToggle"> Party (text)</label>
-    <label class="chip"><input type="checkbox" id="oldPhysicsToggle"> Old Physics</label>
-  </div>
-
-  <div class="row">
-    <label class="chip">Color <input type="color" id="solidColor" value="#00ffcc" style="width:44px;height:30px;padding:0;"></label>
-    <label class="chip"><input type="checkbox" id="lessLag"> Less Lag</label>
-    <label class="sliderWrap">Max <span id="maxObjRead">80</span>
-      <input type="range" id="maxObjects" min="20" max="300" value="80" step="1">
-    </label>
-  </div>
-
-  <div class="row">
-    <label class="sliderWrap">Net FPS <span id="netFpsRead">10</span>
-      <input type="range" id="netFps" min="2" max="20" value="10" step="1">
-    </label>
-    <label class="sliderWrap">Net Max <span id="netMaxRead">140</span>
-      <input type="range" id="netMax" min="20" max="300" value="140" step="1">
-    </label>
+  <div id="helpPanel">
+    <h3>How it works</h3>
+    <ul>
+      <li>Type text to spawn letters as physics objects.</li>
+      <li>Touch or move the mouse to push, pull, spin, or bend the field.</li>
+      <li>Two fingers / two touches create multiple force points.</li>
+      <li>Use Save to export a screenshot.</li>
+      <li>Party mode makes letters rainbow.</li>
+      <li>Tilt mode works on supported mobile devices.</li>
+    </ul>
   </div>
 </div>
 
 <div id="toast">Ready</div>
-<canvas id="c"></canvas>
 
 <script>
 (() => {
-  const ui = document.getElementById("ui");
-  const toast = document.getElementById("toast");
-  const canvas = document.getElementById("c");
+  const matrix = document.getElementById("matrix");
+  const mctx = matrix.getContext("2d");
+  const canvas = document.getElementById("sim");
   const ctx = canvas.getContext("2d", { alpha:false });
+
+  const controlPanel = document.getElementById("controlPanel");
+  const collapseBtn = document.getElementById("collapseBtn");
+  const toast = document.getElementById("toast");
 
   const textInput = document.getElementById("textInput");
   const roomCodeEl = document.getElementById("roomCode");
+
   const createBtn = document.getElementById("createBtn");
   const joinBtn = document.getElementById("joinBtn");
   const leaveBtn = document.getElementById("leaveBtn");
@@ -251,477 +578,720 @@
   const glowToggle = document.getElementById("glowToggle");
   const partyToggle = document.getElementById("partyToggle");
   const oldPhysicsToggle = document.getElementById("oldPhysicsToggle");
+  const trailsToggle = document.getElementById("trailsToggle");
+  const lessLag = document.getElementById("lessLag");
 
   const solidColor = document.getElementById("solidColor");
-  const lessLag = document.getElementById("lessLag");
   const maxObjects = document.getElementById("maxObjects");
-  const maxObjRead = document.getElementById("maxObjRead");
+  const forceStrength = document.getElementById("forceStrength");
+  const bounceStrength = document.getElementById("bounceStrength");
   const netFps = document.getElementById("netFps");
-  const netFpsRead = document.getElementById("netFpsRead");
   const netMax = document.getElementById("netMax");
+
+  const maxObjRead = document.getElementById("maxObjRead");
+  const forceRead = document.getElementById("forceRead");
+  const bounceRead = document.getElementById("bounceRead");
+  const netFpsRead = document.getElementById("netFpsRead");
   const netMaxRead = document.getElementById("netMaxRead");
 
-  const collapseBtn = document.getElementById("collapseBtn");
-  const netDot = document.getElementById("netDot");
-  const netText = document.getElementById("netText");
+  const modeStat = document.getElementById("modeStat");
+  const objectsStat = document.getElementById("objectsStat");
+  const fpsStat = document.getElementById("fpsStat");
+  const netStat = document.getElementById("netStat");
 
-  function resize(){ canvas.width=innerWidth; canvas.height=innerHeight; }
-  addEventListener("resize", resize); resize();
-
-  // Tap outside UI → blur inputs (exit typing)
-  document.addEventListener("pointerdown", (e) => {
-    const t = e.target;
-    if (t instanceof HTMLElement && ui.contains(t)) return;
-    if (document.activeElement === textInput) textInput.blur();
-    if (document.activeElement === roomCodeEl) roomCodeEl.blur();
-  }, true);
-
-  // Don’t let UI touches fall through to canvas
-  ["pointerdown","pointermove","pointerup","pointercancel","touchstart","touchmove"].forEach(ev=>{
-    ui.addEventListener(ev, (e)=>e.stopPropagation(), {passive:false});
+  let collapsed = false;
+  collapseBtn.addEventListener("click", () => {
+    collapsed = !collapsed;
+    controlPanel.classList.toggle("collapsed", collapsed);
+    collapseBtn.textContent = collapsed ? "⬇️" : "⬆️";
   });
 
-  // Ripple pulse
   function ripple(e){
     const target = e.currentTarget;
     if(!(target instanceof HTMLElement)) return;
     const rect = target.getBoundingClientRect();
-    const x = (e.clientX ?? rect.width/2) - rect.left;
-    const y = (e.clientY ?? rect.height/2) - rect.top;
+    const x = (e.clientX ?? rect.width / 2) - rect.left;
+    const y = (e.clientY ?? rect.height / 2) - rect.top;
     const d = Math.max(rect.width, rect.height);
     const s = document.createElement("span");
-    s.className="ripple";
+    s.className = "ripple";
     s.style.width = s.style.height = d + "px";
-    s.style.left = (x - d/2) + "px";
-    s.style.top  = (y - d/2) + "px";
+    s.style.left = (x - d / 2) + "px";
+    s.style.top = (y - d / 2) + "px";
     target.appendChild(s);
-    setTimeout(()=>s.remove(), 700);
+    setTimeout(() => s.remove(), 700);
   }
-  document.querySelectorAll("button").forEach(btn=>btn.addEventListener("pointerdown", ripple));
 
-  // Toast
-  let toastTimer=null;
+  document.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("pointerdown", ripple);
+  });
+
+  let toastTimer = null;
   function showToast(msg){
     toast.textContent = msg;
     toast.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(()=>toast.classList.remove("show"), 1400);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 1400);
   }
 
-  // Collapse UI
-  let collapsed=false;
-  collapseBtn.addEventListener("click",()=>{
-    collapsed=!collapsed;
-    ui.classList.toggle("ui-collapsed", collapsed);
-    collapseBtn.textContent = collapsed ? "⬇️" : "⬆️";
-  });
-
-  // Status
-  function setNet(state, label){
-    netDot.className = "dot " + state;
-    netText.textContent = label;
+  function resize(){
+    matrix.width = innerWidth;
+    matrix.height = innerHeight;
+    canvas.width = innerWidth;
+    canvas.height = innerHeight;
+    initMatrixDrops();
   }
-  setNet("warn","PRIVATE");
 
-  // Settings / params
+  addEventListener("resize", resize);
+  resize();
+
+  /* MATRIX */
+  const matrixChars = "JERRY+-*/<>[]{}0123456789";
+  const matrixSize = 16;
+  let drops = [];
+
+  function initMatrixDrops(){
+    const cols = Math.floor(matrix.width / matrixSize);
+    drops = Array(cols).fill(1);
+  }
+
+  function drawMatrix(){
+    mctx.fillStyle = "rgba(0,0,0,0.08)";
+    mctx.fillRect(0,0,matrix.width,matrix.height);
+    mctx.fillStyle = getComputedStyle(document.body).color;
+    mctx.font = matrixSize + "px monospace";
+
+    drops.forEach((y,i)=>{
+      const c = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+      mctx.fillText(c, i * matrixSize, y * matrixSize);
+
+      if(y * matrixSize > matrix.height && Math.random() > 0.975){
+        drops[i] = 0;
+      }
+      drops[i]++;
+    });
+  }
+
+  setInterval(drawMatrix, 33);
+
+  /* SETTINGS */
   const params = {
-    mode:"push",
-    gravityOn:true,
-    collisions:true,
-    tiltOn:false,
-    glowOn:true,
-    party:false,
-    oldPhysics:false
+    mode: "push",
+    gravityOn: true,
+    collisions: true,
+    tiltOn: false,
+    glowOn: true,
+    party: false,
+    oldPhysics: false,
+    trails: false
   };
 
   function safeHex(hex){
-    hex=(hex||"").trim();
-    return /^#([0-9a-f]{6})$/i.test(hex) ? hex : "#00ffcc";
+    hex = (hex || "").trim();
+    return /^#([0-9a-f]{6})$/i.test(hex) ? hex : "#00ffe1";
   }
+
   function getTextColor(i){
-    if(params.party) return `hsl(${(Date.now()/22 + i*10)%360},100%,60%)`;
+    if(params.party){
+      return `hsl(${(Date.now()/22 + i * 10) % 360},100%,60%)`;
+    }
     return solidColor.value;
   }
+
   function updateReads(){
     maxObjRead.textContent = (+maxObjects.value|0);
+    forceRead.textContent = (+forceStrength.value|0);
+    bounceRead.textContent = (+bounceStrength.value|0);
     netFpsRead.textContent = (+netFps.value|0);
     netMaxRead.textContent = (+netMax.value|0);
   }
-  updateReads();
-  [maxObjects,netFps,netMax].forEach(el=>el.addEventListener("input", updateReads));
 
-  function apply(){
+  updateReads();
+  [maxObjects, forceStrength, bounceStrength, netFps, netMax].forEach(el => {
+    el.addEventListener("input", updateReads);
+  });
+
+  function applySettings(){
     params.gravityOn = gravityToggle.checked;
-    params.collisions= collideToggle.checked;
-    params.tiltOn    = tiltToggle.checked;
-    params.glowOn    = glowToggle.checked;
-    params.party     = partyToggle.checked;
-    params.oldPhysics= oldPhysicsToggle.checked;
+    params.collisions = collideToggle.checked;
+    params.tiltOn = tiltToggle.checked;
+    params.glowOn = glowToggle.checked;
+    params.party = partyToggle.checked;
+    params.oldPhysics = oldPhysicsToggle.checked;
+    params.trails = trailsToggle.checked;
 
     solidColor.value = safeHex(solidColor.value);
     document.body.style.color = solidColor.value;
   }
-  [gravityToggle,collideToggle,tiltToggle,glowToggle,partyToggle,oldPhysicsToggle,solidColor].forEach(el=>{
-    el.addEventListener("input", apply);
-  });
-  apply();
 
-  document.querySelectorAll(".modeBtn").forEach(btn=>{
-    btn.addEventListener("click",()=>{
+  [
+    gravityToggle,
+    collideToggle,
+    tiltToggle,
+    glowToggle,
+    partyToggle,
+    oldPhysicsToggle,
+    trailsToggle,
+    solidColor
+  ].forEach(el => el.addEventListener("input", applySettings));
+
+  applySettings();
+
+  const modeButtons = document.querySelectorAll(".modeBtn");
+  modeButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
       params.mode = btn.dataset.mode || "push";
+      modeButtons.forEach(b => b.classList.toggle("active", b === btn));
+      modeStat.textContent = params.mode.toUpperCase();
       showToast("Mode: " + params.mode.toUpperCase());
     });
   });
 
-  // ======= OLD-SYSTEM TEXT SPAWNER (the reliable one) =======
-  let objs = [];
-  function rand(min,max){ return min + Math.random()*(max-min); }
+  /* BLUR IF CLICK OUTSIDE PANEL */
+  document.addEventListener("pointerdown", (e) => {
+    const t = e.target;
+    if(t instanceof HTMLElement && controlPanel.contains(t)) return;
+    if(document.activeElement === textInput) textInput.blur();
+    if(document.activeElement === roomCodeEl) roomCodeEl.blur();
+  }, true);
 
-  function safeSpawnY(){
-    const uiBottom = ui.getBoundingClientRect().bottom;
-    return Math.min(canvas.height - 30, uiBottom + 25);
+  ["pointerdown","pointermove","pointerup","pointercancel","touchstart","touchmove"].forEach(ev=>{
+    controlPanel.addEventListener(ev, (e)=>e.stopPropagation(), {passive:false});
+  });
+
+  /* OBJECT SYSTEM */
+  let objs = [];
+
+  function rand(min,max){
+    return min + Math.random() * (max - min);
   }
 
-  function rebuildFromTextClassic(){
-    let t = textInput.value || "";
+  function safeSpawnY(){
+    const panelBottom = controlPanel.getBoundingClientRect().bottom;
+    return Math.min(canvas.height - 30, panelBottom + 28);
+  }
 
-    // Less lag clamp
+  function rebuildFromText(){
+    let t = textInput.value || "";
     const cap = lessLag.checked ? +maxObjects.value : 999999;
     t = t.slice(0, cap);
 
-    // Trim extra objects when text deleted
     objs.length = Math.min(objs.length, t.length);
 
-    // Add new objects when text grows
     const top = safeSpawnY();
     while(objs.length < t.length){
       const i = objs.length;
       objs.push({
         ch: t[i],
-        x: rand(20, canvas.width-20),
-        y: rand(top, canvas.height-20),
-        vx: 0, vy: 0
+        x: rand(20, canvas.width - 20),
+        y: rand(top, canvas.height - 20),
+        vx: 0,
+        vy: 0
       });
     }
 
-    // Keep characters in sync (if user edits middle)
-    for(let i=0;i<objs.length;i++){
+    for(let i = 0; i < objs.length; i++){
       objs[i].ch = t[i];
     }
   }
 
-  textInput.addEventListener("input", rebuildFromTextClassic);
-  lessLag.addEventListener("input", rebuildFromTextClassic);
-  maxObjects.addEventListener("input", rebuildFromTextClassic);
+  textInput.addEventListener("input", rebuildFromText);
+  lessLag.addEventListener("input", rebuildFromText);
+  maxObjects.addEventListener("input", rebuildFromText);
 
   function resetPositions(){
     const top = safeSpawnY();
     for(const o of objs){
-      o.x = rand(20, canvas.width-20);
-      o.y = rand(top, canvas.height-20);
-      o.vx = o.vy = 0;
+      o.x = rand(20, canvas.width - 20);
+      o.y = rand(top, canvas.height - 20);
+      o.vx = 0;
+      o.vy = 0;
     }
   }
 
-  resetTextBtn.addEventListener("click",()=>{
-    textInput.value="";
+  resetTextBtn.addEventListener("click", ()=>{
+    textInput.value = "";
     objs = [];
     showToast("Reset text");
   });
-  resetPosBtn.addEventListener("click",()=>{
+
+  resetPosBtn.addEventListener("click", ()=>{
     resetPositions();
     showToast("Positions reset");
   });
 
-  // Save Image (text + black bg only)
-  saveBtn.addEventListener("click",()=>{
-    const out=document.createElement("canvas");
-    out.width=canvas.width; out.height=canvas.height;
-    const g=out.getContext("2d");
-    g.fillStyle="#000"; g.fillRect(0,0,out.width,out.height);
+  saveBtn.addEventListener("click", ()=>{
+    const out = document.createElement("canvas");
+    out.width = canvas.width;
+    out.height = canvas.height;
+    const g = out.getContext("2d");
 
-    for(let i=0;i<objs.length;i++){
-      const o=objs[i];
+    g.fillStyle = "#000";
+    g.fillRect(0,0,out.width,out.height);
+
+    for(let i = 0; i < objs.length; i++){
+      const o = objs[i];
       const col = safeHex(getTextColor(i));
-      g.font="26px monospace";
-      g.textAlign="center";
-      g.textBaseline="middle";
 
-      g.lineWidth=4;
-      g.strokeStyle="#000";
-      g.shadowBlur=0;
+      g.font = "26px monospace";
+      g.textAlign = "center";
+      g.textBaseline = "middle";
+
+      g.lineWidth = 4;
+      g.strokeStyle = "#000";
+      g.shadowBlur = 0;
       g.strokeText(o.ch, o.x, o.y);
 
-      g.fillStyle=col;
+      g.fillStyle = col;
       if(params.glowOn){
-        g.shadowColor=col;
-        g.shadowBlur=14;
-      }else g.shadowBlur=0;
+        g.shadowColor = col;
+        g.shadowBlur = 16;
+      }else{
+        g.shadowBlur = 0;
+      }
       g.fillText(o.ch, o.x, o.y);
     }
 
-    const a=document.createElement("a");
-    a.download="jerry_gravity.png";
-    a.href=out.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.download = "jerry_gravity.png";
+    a.href = out.toDataURL("image/png");
     a.click();
     showToast("Saved screenshot!");
   });
 
-  // ======= Input forces (mouse/touch, 2-finger) =======
+  /* POINTERS / FORCES */
   const pointers = new Map();
-  let primary={x:innerWidth/2,y:innerHeight/2};
+  let primary = { x: innerWidth/2, y: innerHeight/2 };
+
+  canvas.addEventListener("pointerdown", (e)=>{
+    canvas.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x:e.clientX, y:e.clientY, down:true });
+    primary = { x:e.clientX, y:e.clientY };
+  });
+
+  canvas.addEventListener("pointermove", (e)=>{
+    const p = pointers.get(e.pointerId);
+    if(p){
+      p.x = e.clientX;
+      p.y = e.clientY;
+      p.down = true;
+    }
+    primary = { x:e.clientX, y:e.clientY };
+  });
+
+  canvas.addEventListener("pointerup", (e)=>pointers.delete(e.pointerId));
+  canvas.addEventListener("pointercancel", (e)=>pointers.delete(e.pointerId));
 
   function activePoints(){
-    const pts=[...pointers.values()].filter(p=>p.down);
+    const pts = [...pointers.values()].filter(p => p.down);
     return pts.length ? pts.slice(0,2) : [primary];
   }
 
-  canvas.addEventListener("pointerdown",(e)=>{
-    canvas.setPointerCapture(e.pointerId);
-    pointers.set(e.pointerId,{x:e.clientX,y:e.clientY,down:true});
-    primary={x:e.clientX,y:e.clientY};
-  });
-  canvas.addEventListener("pointermove",(e)=>{
-    const p=pointers.get(e.pointerId);
-    if(p){ p.x=e.clientX; p.y=e.clientY; p.down=true; }
-    primary={x:e.clientX,y:e.clientY};
-  });
-  canvas.addEventListener("pointerup",(e)=>pointers.delete(e.pointerId));
-  canvas.addEventListener("pointercancel",(e)=>pointers.delete(e.pointerId));
+  /* TILT */
+  let tiltAx = 0;
+  let tiltAy = 0;
 
-  // Tilt
-  let tiltAx=0, tiltAy=0;
-  addEventListener("deviceorientation",(e)=>{
-    tiltAx=(e.gamma||0)/90;
-    tiltAy=(e.beta||0)/90;
+  addEventListener("deviceorientation", (e)=>{
+    tiltAx = (e.gamma || 0) / 90;
+    tiltAy = (e.beta || 0) / 90;
   });
 
-  // ======= Physics =======
-  function forces(o){
+  /* PHYSICS */
+  function forceValue(){
+    return (+forceStrength.value || 90) / 100;
+  }
+
+  function bounceValue(){
+    return (+bounceStrength.value || 90) / 100;
+  }
+
+  function applyForces(o){
+    const power = forceValue();
+
     for(const p of activePoints()){
-      const dx=p.x-o.x, dy=p.y-o.y;
-      const dist=Math.hypot(dx,dy)+0.001;
+      const dx = p.x - o.x;
+      const dy = p.y - o.y;
+      const dist = Math.hypot(dx,dy) + 0.001;
 
-      // old vs new scale
       let s;
       if(params.oldPhysics){
         const inv = 1 / Math.pow(Math.max(dist, 40), 0.6);
-        s = Math.min(1.2, inv * 22);
+        s = Math.min(1.2, inv * 22) * power;
       }else{
         const rad = 180;
-        s = Math.max(0, 1 - dist/rad) * 0.9;
+        s = Math.max(0, 1 - dist / rad) * 0.9 * power;
       }
 
-      if(s<=0) continue;
+      if(s <= 0) continue;
 
-      if(params.mode==="push"){ o.vx -= (dx/dist)*s; o.vy -= (dy/dist)*s; }
-      if(params.mode==="pull"){ o.vx += (dx/dist)*s; o.vy += (dy/dist)*s; }
-      if(params.mode==="tornado"){ o.vx += (-dy)*0.0012; o.vy += (dx)*0.0012; }
-      if(params.mode==="blackhole"){ o.vx += (dx/dist)*(s*0.85); o.vy += (dy/dist)*(s*0.85); }
-      if(params.mode==="circle"){
-        const a=Math.atan2(dy,dx)+1.55;
-        o.vx += Math.cos(a)*0.08;
-        o.vy += Math.sin(a)*0.08;
+      if(params.mode === "push"){
+        o.vx -= (dx / dist) * s;
+        o.vy -= (dy / dist) * s;
+      }
+
+      if(params.mode === "pull"){
+        o.vx += (dx / dist) * s;
+        o.vy += (dy / dist) * s;
+      }
+
+      if(params.mode === "tornado"){
+        o.vx += (-dy) * 0.0014 * power * 100;
+        o.vy += (dx) * 0.0014 * power * 100;
+      }
+
+      if(params.mode === "blackhole"){
+        o.vx += (dx / dist) * (s * 0.85);
+        o.vy += (dy / dist) * (s * 0.85);
+      }
+
+      if(params.mode === "circle"){
+        const a = Math.atan2(dy,dx) + 1.55;
+        o.vx += Math.cos(a) * 0.08 * power * 2;
+        o.vy += Math.sin(a) * 0.08 * power * 2;
       }
     }
   }
 
   function collisionsStep(){
     if(!params.collisions) return;
-    for(let i=0;i<objs.length;i++){
-      const a=objs[i];
-      for(let j=i+1;j<objs.length;j++){
-        const b=objs[j];
-        const dx=b.x-a.x, dy=b.y-a.y;
-        const dist=Math.hypot(dx,dy)+0.001;
-        const minD=18;
-        if(dist<minD){
-          const push=(minD-dist)*0.012;
-          const nx=dx/dist, ny=dy/dist;
-          a.vx-=nx*push; a.vy-=ny*push;
-          b.vx+=nx*push; b.vy+=ny*push;
+
+    for(let i = 0; i < objs.length; i++){
+      const a = objs[i];
+
+      for(let j = i + 1; j < objs.length; j++){
+        const b = objs[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.hypot(dx,dy) + 0.001;
+        const minD = 18;
+
+        if(dist < minD){
+          const push = (minD - dist) * 0.012;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          a.vx -= nx * push;
+          a.vy -= ny * push;
+          b.vx += nx * push;
+          b.vy += ny * push;
         }
       }
     }
   }
 
-  function step(o){
+  function stepObject(o){
     if(params.tiltOn){
-      o.vx += tiltAx*0.6;
-      o.vy += tiltAy*0.6;
+      o.vx += tiltAx * 0.6;
+      o.vy += tiltAy * 0.6;
     }
 
-    forces(o);
-    if(params.gravityOn) o.vy += 0.15;
+    applyForces(o);
 
-    o.vx *= 0.98; o.vy *= 0.98;
-    o.x += o.vx; o.y += o.vy;
+    if(params.gravityOn){
+      o.vy += 0.15;
+    }
 
-    const r=14;
-    if(o.x<r){o.x=r;o.vx*=-0.9;}
-    if(o.x>canvas.width-r){o.x=canvas.width-r;o.vx*=-0.9;}
-    if(o.y<r){o.y=r;o.vy*=-0.9;}
-    if(o.y>canvas.height-r){o.y=canvas.height-r;o.vy*=-0.6;}
+    o.vx *= 0.98;
+    o.vy *= 0.98;
+    o.x += o.vx;
+    o.y += o.vy;
+
+    const r = 14;
+    const bounce = bounceValue();
+
+    if(o.x < r){
+      o.x = r;
+      o.vx *= -bounce;
+    }
+    if(o.x > canvas.width - r){
+      o.x = canvas.width - r;
+      o.vx *= -bounce;
+    }
+    if(o.y < r){
+      o.y = r;
+      o.vy *= -bounce;
+    }
+    if(o.y > canvas.height - r){
+      o.y = canvas.height - r;
+      o.vy *= -(bounce * 0.7);
+    }
   }
 
-  function drawChar(o,i,alpha=1){
+  function drawChar(o, i, alpha = 1){
     const col = safeHex(getTextColor(i));
-    ctx.font="26px monospace";
-    ctx.textAlign="center";
-    ctx.textBaseline="middle";
-    ctx.globalAlpha=alpha;
 
-    ctx.lineWidth=4;
-    ctx.strokeStyle="#000";
-    ctx.shadowBlur=0;
+    ctx.font = "26px monospace";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.globalAlpha = alpha;
+
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "#000";
+    ctx.shadowBlur = 0;
     ctx.strokeText(o.ch, o.x, o.y);
 
-    ctx.fillStyle=col;
+    ctx.fillStyle = col;
     if(params.glowOn){
-      ctx.shadowColor=col;
-      ctx.shadowBlur=14;
-    }else ctx.shadowBlur=0;
-    ctx.fillText(o.ch, o.x, o.y);
+      ctx.shadowColor = col;
+      ctx.shadowBlur = 16;
+    }else{
+      ctx.shadowBlur = 0;
+    }
 
-    ctx.globalAlpha=1;
+    ctx.fillText(o.ch, o.x, o.y);
+    ctx.globalAlpha = 1;
   }
 
-  // ======= Multiplayer (your server.js supports state/settings) =======
-  const WS_URL="wss://gravity-lab-server.onrender.com";
-  let ws=null, joinedRoom="", myId=null;
-  const others=new Map();
+  function drawForceField(){
+    const pts = activePoints();
+    ctx.save();
+
+    for(const p of pts){
+      const radius = 26 + forceValue() * 70;
+      const color = safeHex(getTextColor(0));
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = 0.22;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 18;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = color;
+      ctx.globalAlpha = 0.5;
+      ctx.fill();
+    }
+
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+
+  /* ONLINE */
+  const WS_URL = "wss://gravity-lab-server.onrender.com";
+  let ws = null;
+  let joinedRoom = "";
+  let myId = null;
+  const others = new Map();
+
+  function setNetLabel(label){
+    netStat.textContent = label;
+  }
 
   function connect(){
     if(privateLobby.checked){
-      setNet("warn","PRIVATE");
+      setNetLabel("PRIVATE");
       return;
     }
-    if(ws && (ws.readyState===0 || ws.readyState===1)) return;
 
-    setNet("warn","CONNECTING…");
-    ws=new WebSocket(WS_URL);
+    if(ws && (ws.readyState === 0 || ws.readyState === 1)) return;
 
-    ws.onopen=()=>{
-      setNet("ok", joinedRoom ? ("ONLINE: "+joinedRoom) : "ONLINE");
-      if(joinedRoom) ws.send(JSON.stringify({type:"join", room: joinedRoom}));
+    setNetLabel("CONNECTING");
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+      setNetLabel(joinedRoom ? ("ONLINE: " + joinedRoom) : "ONLINE");
+      if(joinedRoom){
+        ws.send(JSON.stringify({ type:"join", room:joinedRoom }));
+      }
       showToast("Connected ✅");
     };
 
-    ws.onmessage=(ev)=>{
-      let data; try{ data=JSON.parse(ev.data);}catch{return;}
-      if(data.type==="hello" && data.id) myId=data.id;
-
-      if(data.type==="state" && data.payload && Array.isArray(data.payload.objects)){
-        if(!showOthers.checked) return;
-        if(myId && data.from===myId) return;
-        others.set(data.from,{objects:data.payload.objects,lastSeen:Date.now()});
+    ws.onmessage = (ev) => {
+      let data;
+      try{
+        data = JSON.parse(ev.data);
+      }catch{
+        return;
       }
 
-      if(data.type==="leave" && data.from) others.delete(data.from);
+      if(data.type === "hello" && data.id){
+        myId = data.id;
+      }
+
+      if(data.type === "state" && data.payload && Array.isArray(data.payload.objects)){
+        if(!showOthers.checked) return;
+        if(myId && data.from === myId) return;
+
+        others.set(data.from, {
+          objects: data.payload.objects,
+          lastSeen: Date.now()
+        });
+      }
+
+      if(data.type === "leave" && data.from){
+        others.delete(data.from);
+      }
     };
 
-    ws.onclose=()=>setNet("bad","DISCONNECTED");
-    ws.onerror=()=>setNet("bad","ERROR");
+    ws.onclose = () => setNetLabel("DISCONNECTED");
+    ws.onerror = () => setNetLabel("ERROR");
   }
 
   function sendState(){
     if(privateLobby.checked || !joinedRoom) return;
-    if(!ws || ws.readyState!==1) return;
+    if(!ws || ws.readyState !== 1) return;
 
-    const limit=Math.min(objs.length, +netMax.value||140);
-    const pack=[];
-    for(let i=0;i<limit;i++){
-      const o=objs[i];
-      pack.push({ch:o.ch,x:o.x,y:o.y,vx:o.vx,vy:o.vy});
+    const limit = Math.min(objs.length, +netMax.value || 140);
+    const pack = [];
+
+    for(let i = 0; i < limit; i++){
+      const o = objs[i];
+      pack.push({
+        ch:o.ch,
+        x:o.x,
+        y:o.y,
+        vx:o.vx,
+        vy:o.vy
+      });
     }
 
-    ws.send(JSON.stringify({type:"state", payload:{objects:pack}}));
+    ws.send(JSON.stringify({
+      type: "state",
+      payload: { objects: pack }
+    }));
   }
 
-  let lastSend=0;
+  let lastSend = 0;
   function maybeSend(){
     if(privateLobby.checked || !joinedRoom) return;
-    const now=performance.now();
-    const interval=1000/(+netFps.value||10);
-    if(now-lastSend<interval) return;
-    lastSend=now;
+
+    const now = performance.now();
+    const interval = 1000 / (+netFps.value || 10);
+
+    if(now - lastSend < interval) return;
+    lastSend = now;
     sendState();
   }
 
-  function joinRoom(code, created=false){
-    privateLobby.checked=false;
-    joinedRoom=code;
+  function joinRoom(code, created = false){
+    privateLobby.checked = false;
+    joinedRoom = code;
     connect();
-    if(ws && ws.readyState===1) ws.send(JSON.stringify({type:"join", room: code}));
-    setNet("ok","ONLINE: "+code);
-    showToast(created ? ("Created Room "+code+"!") : ("You Joined "+code+"!"));
+
+    if(ws && ws.readyState === 1){
+      ws.send(JSON.stringify({ type:"join", room:code }));
+    }
+
+    setNetLabel("ONLINE: " + code);
+    showToast(created ? ("Created room " + code + "!") : ("Joined " + code + "!"));
   }
 
-  createBtn.onclick=()=>{
-    const code=(roomCodeEl.value.trim()||Math.random().toString(36).slice(2,7)).toUpperCase();
-    roomCodeEl.value=code;
-    joinRoom(code,true);
+  createBtn.onclick = () => {
+    const code = (roomCodeEl.value.trim() || Math.random().toString(36).slice(2,7)).toUpperCase();
+    roomCodeEl.value = code;
+    joinRoom(code, true);
   };
-  joinBtn.onclick=()=>{
-    const code=roomCodeEl.value.trim().toUpperCase();
-    if(!code){ showToast("Enter a room code"); return; }
-    joinRoom(code,false);
+
+  joinBtn.onclick = () => {
+    const code = roomCodeEl.value.trim().toUpperCase();
+    if(!code){
+      showToast("Enter a room code");
+      return;
+    }
+    joinRoom(code, false);
   };
-  leaveBtn.onclick=()=>{
-    joinedRoom="";
+
+  leaveBtn.onclick = () => {
+    joinedRoom = "";
     others.clear();
-    try{ ws && ws.send(JSON.stringify({type:"leave"})); }catch{}
-    try{ ws && ws.close(); }catch{}
-    ws=null;
-    privateLobby.checked=true;
-    setNet("warn","PRIVATE");
+
+    try{
+      ws && ws.send(JSON.stringify({ type:"leave" }));
+    }catch{}
+
+    try{
+      ws && ws.close();
+    }catch{}
+
+    ws = null;
+    privateLobby.checked = true;
+    setNetLabel("PRIVATE");
     showToast("Left room");
   };
 
-  privateLobby.oninput=()=>{
+  privateLobby.oninput = () => {
     if(privateLobby.checked){
-      joinedRoom="";
+      joinedRoom = "";
       others.clear();
-      try{ ws && ws.close(); }catch{}
-      ws=null;
-      setNet("warn","PRIVATE");
+
+      try{
+        ws && ws.close();
+      }catch{}
+
+      ws = null;
+      setNetLabel("PRIVATE");
       showToast("Private lobby");
     }else{
       connect();
-      setNet("ok", joinedRoom ? ("ONLINE: "+joinedRoom) : "ONLINE");
-      showToast("Online enabled — join/create");
+      setNetLabel(joinedRoom ? ("ONLINE: " + joinedRoom) : "ONLINE");
+      showToast("Online enabled — join or create");
     }
   };
 
-  // ======= Main loop =======
-  function loop(){
-    ctx.fillStyle="#000";
+  /* FPS */
+  let fps = 0;
+  let frameCounter = 0;
+  let lastFpsTime = performance.now();
+
+  /* LOOP */
+  function loop(now){
+    frameCounter++;
+    if(now - lastFpsTime >= 1000){
+      fps = frameCounter;
+      frameCounter = 0;
+      lastFpsTime = now;
+      fpsStat.textContent = String(fps);
+    }
+
+    if(params.trails){
+      ctx.fillStyle = "rgba(0,0,0,0.12)";
+    }else{
+      ctx.fillStyle = "#000";
+    }
     ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    for(const o of objs) step(o);
+    for(const o of objs){
+      stepObject(o);
+    }
+
     collisionsStep();
 
-    for(let i=0;i<objs.length;i++) drawChar(objs[i], i, 1);
+    for(let i = 0; i < objs.length; i++){
+      drawChar(objs[i], i, 1);
+    }
 
     if(showOthers.checked){
-      const now=Date.now();
+      const current = Date.now();
+
       for(const [id,s] of others.entries()){
-        if(now-s.lastSeen>15000){ others.delete(id); continue; }
-        const arr=s.objects||[];
-        for(let i=0;i<arr.length;i++) drawChar(arr[i], i, 0.72);
+        if(current - s.lastSeen > 15000){
+          others.delete(id);
+          continue;
+        }
+
+        const arr = s.objects || [];
+        for(let i = 0; i < arr.length; i++){
+          drawChar(arr[i], i, 0.72);
+        }
       }
     }
 
+    drawForceField();
+
+    objectsStat.textContent = String(objs.length);
     maybeSend();
+
     requestAnimationFrame(loop);
   }
 
-  // Start
   showToast("Ready ✅");
-  rebuildFromTextClassic();
-  loop();
+  rebuildFromText();
+  loop(performance.now());
 })();
 </script>
 
-
-</body></html>
+</body>
+</html>
