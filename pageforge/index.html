@@ -17,9 +17,7 @@
   --mono:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-*{
-  box-sizing:border-box;
-}
+*{box-sizing:border-box}
 
 html,body{
   margin:0;
@@ -60,7 +58,7 @@ html,body{
 }
 
 .page{
-  width:min(1440px, calc(100% - 22px));
+  width:min(1460px, calc(100% - 22px));
   height:100vh;
   margin:0 auto;
   padding:12px 0;
@@ -118,7 +116,7 @@ html,body{
 .app{
   min-height:0;
   display:grid;
-  grid-template-columns:300px 1fr 320px;
+  grid-template-columns:300px 1fr 350px;
   gap:10px;
 }
 
@@ -185,25 +183,31 @@ button.active{
   box-shadow:0 0 18px var(--cyanGlow);
 }
 
+button:disabled{
+  opacity:0.45;
+  cursor:not-allowed;
+}
+
 input[type="color"]{
   height:38px;
   padding:0;
 }
 
 textarea{
-  min-height:130px;
+  min-height:92px;
   resize:vertical;
 }
 
-.row{
+.row,
+.toolGrid{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:8px;
 }
 
-.toolGrid{
+.tripleRow{
   display:grid;
-  grid-template-columns:1fr 1fr;
+  grid-template-columns:1fr 1fr 1fr;
   gap:8px;
 }
 
@@ -251,8 +255,8 @@ textarea{
   border:1px dashed transparent;
 }
 
-.previewItem:active{
-  cursor:grabbing;
+.previewItem.locked{
+  cursor:not-allowed;
 }
 
 .previewItem.selected{
@@ -273,9 +277,8 @@ textarea{
 }
 
 .previewCard{
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
+  white-space:pre-wrap;
+  overflow:hidden;
 }
 
 .previewImage{
@@ -329,6 +332,35 @@ textarea{
   display:none;
 }
 
+.modeTabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-bottom:10px;
+}
+
+.advancedOnly{
+  display:none;
+}
+
+body.advanced .advancedOnly{
+  display:block;
+}
+
+.quickActions{
+  margin-top:10px;
+  padding:10px;
+  border:1px solid rgba(0,255,225,0.22);
+  border-radius:14px;
+  background:rgba(0,0,0,0.28);
+}
+
+.quickActions h3{
+  margin:0 0 8px;
+  font-size:13px;
+  color:var(--text);
+}
+
 .codeModal{
   position:fixed;
   inset:0;
@@ -358,13 +390,30 @@ textarea{
   background:#000;
 }
 
+#contextMenu{
+  position:fixed;
+  z-index:80;
+  display:none;
+  width:210px;
+  padding:8px;
+  border-radius:14px;
+  background:rgba(0,0,0,0.92);
+  border:1px solid var(--cyan);
+  box-shadow:0 0 22px rgba(0,255,225,0.32);
+}
+
+#contextMenu button{
+  margin:4px 0;
+  text-align:left;
+}
+
 #toast{
   position:fixed;
   left:50%;
   bottom:18px;
   transform:translateX(-50%) translateY(20px);
   opacity:0;
-  z-index:70;
+  z-index:90;
   background:rgba(0,0,0,0.78);
   color:var(--cyan);
   border:1px solid currentColor;
@@ -381,28 +430,16 @@ textarea{
 }
 
 @media(max-width:1100px){
-  html,body{
-    overflow:auto;
-  }
-
-  .page{
-    height:auto;
-  }
-
-  .app{
-    grid-template-columns:1fr;
-  }
-
-  .previewShell{
-    min-height:620px;
-  }
+  html,body{overflow:auto}
+  .page{height:auto}
+  .app{grid-template-columns:1fr}
+  .previewShell{min-height:620px}
 }
 
 @media(max-width:580px){
   .row,
-  .toolGrid{
-    grid-template-columns:1fr;
-  }
+  .toolGrid,
+  .tripleRow{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -413,16 +450,29 @@ textarea{
 <div id="bottomGlow"></div>
 <div id="toast">Ready.</div>
 
+<div id="contextMenu">
+  <button id="ctxDuplicate">Clone</button>
+  <button id="ctxDelete">Delete</button>
+  <button id="ctxLock">Lock / Unlock</button>
+  <button id="ctxCenter">Center</button>
+  <button id="ctxScaleUp">Scale Up</button>
+  <button id="ctxScaleDown">Scale Down</button>
+  <button id="ctxForward">Bring Forward</button>
+  <button id="ctxBackward">Send Backward</button>
+</div>
+
 <div class="page">
 
   <header class="topbar">
     <div class="brand">
       <h1>⚒️ JERRY Page Forge</h1>
-      <span>visual HTML creator • build pages without hand-writing everything</span>
+      <span>visual HTML creator • v2.1 cleaner editing</span>
     </div>
 
     <nav class="navLinks">
       <a href="../">JERRY Tools</a>
+      <button id="undoTopBtn">Undo</button>
+      <button id="redoTopBtn">Redo</button>
       <button id="showCodeBtn">Show HTML</button>
       <button id="downloadBtn">Download HTML</button>
     </nav>
@@ -443,16 +493,30 @@ textarea{
       <button id="addImageBtn" style="margin-top:8px;">Add Image</button>
       <input id="imageInput" class="hiddenFile" type="file" accept="image/*" />
 
+      <h2 style="margin-top:16px;">Templates</h2>
+
+      <div class="toolGrid">
+        <button id="templateLandingBtn">Landing</button>
+        <button id="templateLinksBtn">Link Page</button>
+        <button id="templateArgBtn">ARG Page</button>
+        <button id="templateClearBtn">Blank</button>
+      </div>
+
       <h2 style="margin-top:16px;">Page Setup</h2>
 
       <label>Page Title</label>
       <input id="pageTitle" value="My JERRY Page" />
 
-      <label>Page Width</label>
-      <input id="pageW" type="number" min="320" max="2400" value="960" />
-
-      <label>Page Height</label>
-      <input id="pageH" type="number" min="240" max="1600" value="540" />
+      <div class="row">
+        <div>
+          <label>Width</label>
+          <input id="pageW" type="number" min="320" max="2400" value="960" />
+        </div>
+        <div>
+          <label>Height</label>
+          <input id="pageH" type="number" min="240" max="1600" value="540" />
+        </div>
+      </div>
 
       <button id="applyPageSizeBtn" style="margin-top:8px;">Apply Size</button>
 
@@ -471,10 +535,10 @@ textarea{
 
       <h2 style="margin-top:16px;">Effects</h2>
 
-      <label><input id="effectMatrix" type="checkbox" checked style="width:auto;" /> Matrix background</label>
+      <label><input id="effectMatrix" type="checkbox" checked style="width:auto;" /> Matrix grid</label>
       <label><input id="effectBottomGlow" type="checkbox" checked style="width:auto;" /> Bottom glow</label>
       <label><input id="effectScanlines" type="checkbox" style="width:auto;" /> Scanlines</label>
-      <label><input id="effectParticles" type="checkbox" style="width:auto;" /> Floating particles</label>
+      <label><input id="effectParticles" type="checkbox" style="width:auto;" /> Particles</label>
 
       <h2 style="margin-top:16px;">Project</h2>
 
@@ -490,8 +554,10 @@ textarea{
 
       <input id="projectInput" class="hiddenFile" type="file" accept=".json,application/json" />
 
+      <button id="clearAllBtn" style="margin-top:8px;">Clear All Elements</button>
+
       <p class="smallNote">
-        Tip: drag elements in the preview. Select an element to edit it on the right.
+        PC: right-click elements. Mobile: long-press or use Quick Actions.
       </p>
     </aside>
 
@@ -512,9 +578,35 @@ textarea{
     <aside class="panel">
       <h2>Selected Element</h2>
 
+      <div class="modeTabs">
+        <button id="simpleModeBtn" class="active">Easy</button>
+        <button id="advancedModeBtn">Advanced</button>
+      </div>
+
       <div id="noSelection" class="smallNote">Nothing selected.</div>
 
       <div id="selectedPanel" style="display:none;">
+
+        <div class="quickActions">
+          <h3>Quick Actions</h3>
+          <div class="tripleRow">
+            <button id="quickDeleteBtn">Delete</button>
+            <button id="quickCloneBtn">Clone</button>
+            <button id="quickOptionsBtn">Options</button>
+          </div>
+
+          <div class="tripleRow" style="margin-top:8px;">
+            <button id="quickCenterBtn">Center</button>
+            <button id="quickScaleUpBtn">Scale +</button>
+            <button id="quickScaleDownBtn">Scale -</button>
+          </div>
+
+          <div class="row" style="margin-top:8px;">
+            <button id="lockBtn">Lock / Unlock</button>
+            <button id="fitBtn">Fit Page</button>
+          </div>
+        </div>
+
         <label>Name</label>
         <input id="elName" />
 
@@ -555,6 +647,37 @@ textarea{
         <label>Font Size: <span id="fontRead">28</span></label>
         <input id="elFontSize" type="range" min="8" max="120" value="28" />
 
+        <div class="advancedOnly">
+          <label>Text Align</label>
+          <select id="elAlign">
+            <option value="left">Left</option>
+            <option value="center">Center</option>
+            <option value="right">Right</option>
+          </select>
+
+          <label>Font Weight</label>
+          <select id="elWeight">
+            <option value="400">Normal</option>
+            <option value="700">Bold</option>
+            <option value="900">Heavy</option>
+          </select>
+
+          <label>Padding: <span id="paddingRead">12</span></label>
+          <input id="elPadding" type="range" min="0" max="60" value="12" />
+
+          <label>Border Size: <span id="borderRead">1</span></label>
+          <input id="elBorder" type="range" min="0" max="12" value="1" />
+
+          <label>Border Color</label>
+          <input id="elBorderColor" type="color" value="#ffffff" />
+
+          <label>Rotation: <span id="rotationRead">0</span>°</label>
+          <input id="elRotation" type="range" min="-180" max="180" value="0" />
+
+          <label>Custom CSS</label>
+          <textarea id="elCustomCss" placeholder="Example: letter-spacing: 2px;"></textarea>
+        </div>
+
         <label>Border Radius: <span id="radiusRead">16</span></label>
         <input id="elRadius" type="range" min="0" max="80" value="16" />
 
@@ -563,11 +686,6 @@ textarea{
 
         <label>Opacity: <span id="opacityRead">100</span>%</label>
         <input id="elOpacity" type="range" min="0" max="100" value="100" />
-
-        <div class="row" style="margin-top:8px;">
-          <button id="duplicateBtn">Duplicate</button>
-          <button id="deleteBtn">Delete</button>
-        </div>
 
         <div class="row" style="margin-top:8px;">
           <button id="forwardBtn">Forward</button>
@@ -594,12 +712,10 @@ textarea{
 </div>
 
 <script>
-/* =========================
-   JERRY BACKGROUND
-========================= */
+/* MATRIX BACKGROUND */
 const matrix = document.getElementById("matrix");
 const mctx = matrix.getContext("2d");
-const matrixChars = "01<>/=+-JERRYPAGEFORGE";
+const matrixChars = "01<>/=+-JERRYPAGEFORGEV21";
 const matrixSize = 16;
 let matrixDrops = [];
 
@@ -632,12 +748,11 @@ function drawMatrix(){
 
 setInterval(drawMatrix, 33);
 
-/* =========================
-   ELEMENTS
-========================= */
+/* DOM */
 const preview = document.getElementById("preview");
 const status = document.getElementById("status");
 const toast = document.getElementById("toast");
+const contextMenu = document.getElementById("contextMenu");
 
 const pageTitle = document.getElementById("pageTitle");
 const pageW = document.getElementById("pageW");
@@ -660,9 +775,17 @@ const addBoxBtn = document.getElementById("addBoxBtn");
 const addImageBtn = document.getElementById("addImageBtn");
 const imageInput = document.getElementById("imageInput");
 
+const templateLandingBtn = document.getElementById("templateLandingBtn");
+const templateLinksBtn = document.getElementById("templateLinksBtn");
+const templateArgBtn = document.getElementById("templateArgBtn");
+const templateClearBtn = document.getElementById("templateClearBtn");
+
 const noSelection = document.getElementById("noSelection");
 const selectedPanel = document.getElementById("selectedPanel");
 const layerList = document.getElementById("layerList");
+
+const simpleModeBtn = document.getElementById("simpleModeBtn");
+const advancedModeBtn = document.getElementById("advancedModeBtn");
 
 const elName = document.getElementById("elName");
 const elText = document.getElementById("elText");
@@ -674,22 +797,50 @@ const elH = document.getElementById("elH");
 const elBg = document.getElementById("elBg");
 const elColor = document.getElementById("elColor");
 const elFontSize = document.getElementById("elFontSize");
+const elAlign = document.getElementById("elAlign");
+const elWeight = document.getElementById("elWeight");
+const elPadding = document.getElementById("elPadding");
+const elBorder = document.getElementById("elBorder");
+const elBorderColor = document.getElementById("elBorderColor");
+const elRotation = document.getElementById("elRotation");
+const elCustomCss = document.getElementById("elCustomCss");
 const elRadius = document.getElementById("elRadius");
 const elGlow = document.getElementById("elGlow");
 const elOpacity = document.getElementById("elOpacity");
 
 const fontRead = document.getElementById("fontRead");
+const paddingRead = document.getElementById("paddingRead");
+const borderRead = document.getElementById("borderRead");
+const rotationRead = document.getElementById("rotationRead");
 const radiusRead = document.getElementById("radiusRead");
 const glowRead = document.getElementById("glowRead");
 const opacityRead = document.getElementById("opacityRead");
 
-const duplicateBtn = document.getElementById("duplicateBtn");
-const deleteBtn = document.getElementById("deleteBtn");
+const quickDeleteBtn = document.getElementById("quickDeleteBtn");
+const quickCloneBtn = document.getElementById("quickCloneBtn");
+const quickOptionsBtn = document.getElementById("quickOptionsBtn");
+const quickCenterBtn = document.getElementById("quickCenterBtn");
+const quickScaleUpBtn = document.getElementById("quickScaleUpBtn");
+const quickScaleDownBtn = document.getElementById("quickScaleDownBtn");
+const lockBtn = document.getElementById("lockBtn");
+const fitBtn = document.getElementById("fitBtn");
 const forwardBtn = document.getElementById("forwardBtn");
 const backwardBtn = document.getElementById("backwardBtn");
 
+const ctxDuplicate = document.getElementById("ctxDuplicate");
+const ctxDelete = document.getElementById("ctxDelete");
+const ctxLock = document.getElementById("ctxLock");
+const ctxCenter = document.getElementById("ctxCenter");
+const ctxScaleUp = document.getElementById("ctxScaleUp");
+const ctxScaleDown = document.getElementById("ctxScaleDown");
+const ctxForward = document.getElementById("ctxForward");
+const ctxBackward = document.getElementById("ctxBackward");
+
 const zoomInBtn = document.getElementById("zoomInBtn");
 const zoomOutBtn = document.getElementById("zoomOutBtn");
+
+const undoTopBtn = document.getElementById("undoTopBtn");
+const redoTopBtn = document.getElementById("redoTopBtn");
 
 const showCodeBtn = document.getElementById("showCodeBtn");
 const downloadBtn = document.getElementById("downloadBtn");
@@ -703,10 +854,9 @@ const loadLocalBtn = document.getElementById("loadLocalBtn");
 const exportProjectBtn = document.getElementById("exportProjectBtn");
 const importProjectBtn = document.getElementById("importProjectBtn");
 const projectInput = document.getElementById("projectInput");
+const clearAllBtn = document.getElementById("clearAllBtn");
 
-/* =========================
-   STATE
-========================= */
+/* STATE */
 let project = {
   title:"My JERRY Page",
   width:960,
@@ -714,12 +864,7 @@ let project = {
   bgType:"cyber",
   bgA:"#05070a",
   bgB:"#002b33",
-  effects:{
-    matrix:true,
-    bottomGlow:true,
-    scanlines:false,
-    particles:false
-  },
+  effects:{ matrix:true, bottomGlow:true, scanlines:false, particles:false },
   items:[]
 };
 
@@ -727,6 +872,12 @@ let selectedId = null;
 let zoom = 0.8;
 let dragging = false;
 let dragOffset = {x:0,y:0};
+let longPressTimer = null;
+let refreshingUI = false;
+
+let undoStack = [];
+let redoStack = [];
+let lastHistory = "";
 
 function newId(){
   return "item_" + Math.random().toString(36).slice(2,9) + "_" + Date.now();
@@ -739,17 +890,71 @@ function selectedItem(){
 function showToast(message){
   toast.textContent = message;
   toast.classList.add("show");
-
   clearTimeout(showToast.timer);
-  showToast.timer = setTimeout(()=>{
-    toast.classList.remove("show");
-  }, 1300);
+  showToast.timer = setTimeout(()=>toast.classList.remove("show"),1300);
 }
 
-/* =========================
-   ADD ITEMS
-========================= */
-function addItem(type){
+/* HISTORY */
+function snapshot(){
+  return JSON.stringify({project, selectedId});
+}
+
+function pushHistory(){
+  syncProjectFromPageInputs();
+
+  const snap = snapshot();
+  if(snap === lastHistory) return;
+
+  undoStack.push(snap);
+  if(undoStack.length > 80) undoStack.shift();
+
+  lastHistory = snap;
+  redoStack = [];
+  updateUndoRedoButtons();
+}
+
+function restoreSnapshot(snap){
+  const data = JSON.parse(snap);
+  project = data.project;
+  selectedId = data.selectedId;
+  syncInputsFromProject();
+  render(false);
+}
+
+function undo(){
+  if(undoStack.length <= 1) return;
+
+  const current = undoStack.pop();
+  redoStack.push(current);
+
+  const previous = undoStack[undoStack.length - 1];
+  lastHistory = previous;
+  restoreSnapshot(previous);
+  updateUndoRedoButtons();
+  showToast("Undo.");
+}
+
+function redo(){
+  if(redoStack.length === 0) return;
+
+  const next = redoStack.pop();
+  undoStack.push(next);
+  lastHistory = next;
+  restoreSnapshot(next);
+  updateUndoRedoButtons();
+  showToast("Redo.");
+}
+
+function updateUndoRedoButtons(){
+  undoTopBtn.disabled = undoStack.length <= 1;
+  redoTopBtn.disabled = redoStack.length === 0;
+}
+
+undoTopBtn.onclick = undo;
+redoTopBtn.onclick = redo;
+
+/* DEFAULT ITEMS */
+function defaultItem(type){
   const base = {
     id:newId(),
     type,
@@ -763,49 +968,76 @@ function addItem(type){
     bg:"#00ffe1",
     color:"#eaffff",
     fontSize:28,
+    align:"center",
+    weight:"700",
+    padding:12,
+    border:1,
+    borderColor:"#ffffff",
+    rotation:0,
     radius:16,
     glow:20,
     opacity:1,
+    customCss:"",
+    locked:false,
     dataUrl:""
   };
 
   if(type === "text"){
-    base.text = "JERRY TEXT";
-    base.bg = "#000000";
-    base.color = "#00ffe1";
-    base.w = 360;
-    base.h = 70;
-    base.fontSize = 42;
-    base.glow = 18;
+    Object.assign(base, {
+      text:"JERRY TEXT",
+      bg:"#000000",
+      color:"#00ffe1",
+      w:380,
+      h:70,
+      fontSize:42,
+      align:"left",
+      border:0,
+      glow:18
+    });
   }
 
   if(type === "button"){
-    base.text = "Open Link";
-    base.href = "https://waa-4.github.io/jerry-home/";
-    base.bg = "#00ffe1";
-    base.color = "#000000";
-    base.w = 190;
-    base.h = 58;
+    Object.assign(base, {
+      text:"Open Link",
+      href:"https://waa-4.github.io/jerry-home/",
+      bg:"#00ffe1",
+      color:"#000000",
+      w:190,
+      h:58
+    });
   }
 
   if(type === "card"){
-    base.text = "Card Title\\nThis is a simple card made in Page Forge.";
-    base.bg = "#071014";
-    base.color = "#eaffff";
-    base.w = 320;
-    base.h = 180;
+    Object.assign(base, {
+      text:"Card Title\nThis is a simple card made in Page Forge.",
+      bg:"#071014",
+      color:"#eaffff",
+      w:330,
+      h:180,
+      align:"left"
+    });
   }
 
   if(type === "box"){
-    base.text = "";
-    base.bg = "#17343a";
-    base.w = 220;
-    base.h = 140;
+    Object.assign(base, {
+      text:"",
+      bg:"#17343a",
+      w:220,
+      h:140
+    });
   }
 
-  project.items.push(base);
-  selectedId = base.id;
+  return base;
+}
+
+/* ADD */
+function addItem(type){
+  pushHistory();
+  const item = defaultItem(type);
+  project.items.push(item);
+  selectedId = item.id;
   render();
+  pushHistory();
   showToast(type + " added.");
 }
 
@@ -823,38 +1055,97 @@ imageInput.addEventListener("change", event=>{
   const reader = new FileReader();
 
   reader.onload = ()=>{
-    const item = {
-      id:newId(),
-      type:"image",
-      name:file.name || "Image",
-      x:100,
-      y:100,
-      w:260,
-      h:160,
-      text:"",
-      href:"",
-      bg:"#000000",
-      color:"#ffffff",
-      fontSize:16,
-      radius:14,
-      glow:18,
-      opacity:1,
-      dataUrl:reader.result
-    };
-
+    pushHistory();
+    const item = defaultItem("image");
+    item.name = file.name || "Image";
+    item.w = 280;
+    item.h = 170;
+    item.dataUrl = reader.result;
     project.items.push(item);
     selectedId = item.id;
     render();
+    pushHistory();
     showToast("Image added.");
   };
 
   reader.readAsDataURL(file);
 });
 
-/* =========================
-   RENDER
-========================= */
-function render(){
+/* TEMPLATES */
+function setTemplate(kind){
+  if(project.items.length && !confirm("Replace current elements with this template?")) return;
+
+  pushHistory();
+  project.items = [];
+  selectedId = null;
+  project.width = 960;
+  project.height = 540;
+  pageW.value = project.width;
+  pageH.value = project.height;
+
+  if(kind === "landing"){
+    project.title = "JERRY Landing Page";
+    pageTitle.value = project.title;
+
+    const title = defaultItem("text");
+    Object.assign(title, {text:"JERRY PROJECT", x:70, y:80, w:650, h:80, fontSize:56});
+
+    const sub = defaultItem("card");
+    Object.assign(sub, {text:"A glowing page made with Page Forge.\nEdit this text and make it yours.", x:80, y:190, w:520, h:150});
+
+    const btn = defaultItem("button");
+    Object.assign(btn, {text:"ENTER", x:80, y:380, w:180, h:62});
+
+    project.items.push(title, sub, btn);
+  }
+
+  if(kind === "links"){
+    project.title = "waa-4 Links";
+    pageTitle.value = project.title;
+
+    const title = defaultItem("text");
+    Object.assign(title, {text:"waa-4 stuff", x:80, y:55, w:520, h:70, fontSize:48});
+
+    ["YouTube", "JERRY Tools", "because.blocks"].forEach((name,i)=>{
+      const btn = defaultItem("button");
+      Object.assign(btn, {text:name, x:100, y:160 + i * 85, w:270, h:60});
+      project.items.push(btn);
+    });
+
+    project.items.unshift(title);
+  }
+
+  if(kind === "arg"){
+    project.title = "Signal Page";
+    pageTitle.value = project.title;
+
+    const title = defaultItem("text");
+    Object.assign(title, {text:"SIGNAL FOUND", x:70, y:70, w:600, h:80, fontSize:52, color:"#ff4fd8"});
+
+    const card = defaultItem("card");
+    Object.assign(card, {text:"The page is watching.\nThe signal is not random.\nReturn when the sky turns cyan.", x:90, y:190, w:560, h:190, bg:"#08030d", color:"#eaffff"});
+
+    project.items.push(title, card);
+  }
+
+  render();
+  pushHistory();
+}
+
+templateLandingBtn.onclick = () => setTemplate("landing");
+templateLinksBtn.onclick = () => setTemplate("links");
+templateArgBtn.onclick = () => setTemplate("arg");
+templateClearBtn.onclick = () => {
+  if(!confirm("Start blank?")) return;
+  pushHistory();
+  project.items = [];
+  selectedId = null;
+  render();
+  pushHistory();
+};
+
+/* RENDER */
+function syncProjectFromPageInputs(){
   project.title = pageTitle.value;
   project.width = clamp(Number(pageW.value) || 960, 320, 2400);
   project.height = clamp(Number(pageH.value) || 540, 240, 1600);
@@ -865,6 +1156,23 @@ function render(){
   project.effects.bottomGlow = effectBottomGlow.checked;
   project.effects.scanlines = effectScanlines.checked;
   project.effects.particles = effectParticles.checked;
+}
+
+function syncInputsFromProject(){
+  pageTitle.value = project.title;
+  pageW.value = project.width;
+  pageH.value = project.height;
+  bgType.value = project.bgType;
+  bgA.value = project.bgA;
+  bgB.value = project.bgB;
+  effectMatrix.checked = !!project.effects.matrix;
+  effectBottomGlow.checked = !!project.effects.bottomGlow;
+  effectScanlines.checked = !!project.effects.scanlines;
+  effectParticles.checked = !!project.effects.particles;
+}
+
+function render(writeHistory = false){
+  syncProjectFromPageInputs();
 
   preview.style.width = project.width + "px";
   preview.style.height = project.height + "px";
@@ -872,7 +1180,6 @@ function render(){
   preview.style.minHeight = project.height + "px";
   preview.style.transform = `scale(${zoom})`;
   preview.style.background = getPageBackground();
-
   preview.innerHTML = "";
 
   if(project.effects.matrix) preview.appendChild(makePreviewMatrixLayer());
@@ -887,16 +1194,13 @@ function render(){
   renderLayers();
   refreshSelectedUI();
   status.textContent = `Ready • ${project.width}×${project.height} • ${project.items.length} elements • Zoom ${zoom.toFixed(2)}x`;
+
+  if(writeHistory) pushHistory();
 }
 
 function getPageBackground(){
-  if(project.bgType === "solid"){
-    return project.bgA;
-  }
-
-  if(project.bgType === "gradient"){
-    return `linear-gradient(135deg, ${project.bgA}, ${project.bgB})`;
-  }
+  if(project.bgType === "solid") return project.bgA;
+  if(project.bgType === "gradient") return `linear-gradient(135deg, ${project.bgA}, ${project.bgB})`;
 
   return `
     radial-gradient(circle at top, rgba(0,255,225,0.16), transparent 38%),
@@ -948,6 +1252,35 @@ function makePreviewScanlines(){
   return div;
 }
 
+function applyItemStyles(el,item){
+  el.style.left = item.x + "px";
+  el.style.top = item.y + "px";
+  el.style.width = item.w + "px";
+  el.style.height = item.h + "px";
+  el.style.background = item.type === "text" ? "transparent" : item.bg;
+  el.style.color = item.color;
+  el.style.fontSize = item.fontSize + "px";
+  el.style.fontWeight = item.weight;
+  el.style.textAlign = item.align;
+  el.style.borderRadius = item.radius + "px";
+  el.style.opacity = item.opacity;
+  el.style.boxShadow = item.glow > 0 ? `0 0 ${item.glow}px ${item.bg}` : "none";
+  el.style.padding = item.type === "image" ? "0" : item.padding + "px";
+  el.style.border = item.border > 0 ? `${item.border}px solid ${hexToRgba(item.borderColor,0.55)}` : "none";
+  el.style.transform = `rotate(${item.rotation || 0}deg)`;
+  el.style.zIndex = project.items.indexOf(item) + 1;
+
+  if(item.customCss){
+    item.customCss.split(";").forEach(rule=>{
+      const parts = rule.split(":");
+      if(parts.length < 2) return;
+      const prop = parts[0].trim();
+      const value = parts.slice(1).join(":").trim();
+      if(prop && value) el.style.setProperty(prop,value);
+    });
+  }
+}
+
 function makeItemElement(item){
   let el;
 
@@ -967,20 +1300,9 @@ function makeItemElement(item){
 
   el.dataset.id = item.id;
   el.classList.toggle("selected", item.id === selectedId);
+  el.classList.toggle("locked", !!item.locked);
 
-  el.style.left = item.x + "px";
-  el.style.top = item.y + "px";
-  el.style.width = item.w + "px";
-  el.style.height = item.h + "px";
-  el.style.background = item.type === "text" ? "transparent" : item.bg;
-  el.style.color = item.color;
-  el.style.fontSize = item.fontSize + "px";
-  el.style.borderRadius = item.radius + "px";
-  el.style.opacity = item.opacity;
-  el.style.boxShadow = item.glow > 0 ? `0 0 ${item.glow}px ${item.bg}` : "none";
-  el.style.padding = item.type === "image" ? "0" : "12px";
-  el.style.display = item.type === "box" ? "block" : el.style.display;
-  el.style.border = item.type === "text" ? "none" : "1px solid rgba(255,255,255,0.22)";
+  applyItemStyles(el,item);
 
   if(item.type !== "image"){
     el.textContent = item.text;
@@ -988,7 +1310,21 @@ function makeItemElement(item){
 
   el.addEventListener("pointerdown", event=>{
     event.preventDefault();
+    hideContextMenu();
     selectedId = item.id;
+
+    clearTimeout(longPressTimer);
+    longPressTimer = setTimeout(()=>{
+      showContextMenu(event.clientX,event.clientY);
+    }, 620);
+
+    if(item.locked){
+      render();
+      return;
+    }
+
+    pushHistory();
+
     const p = previewPoint(event);
     dragging = true;
     dragOffset.x = p.x - item.x;
@@ -998,7 +1334,9 @@ function makeItemElement(item){
   });
 
   el.addEventListener("pointermove", event=>{
-    if(!dragging || selectedId !== item.id) return;
+    clearTimeout(longPressTimer);
+    if(!dragging || selectedId !== item.id || item.locked) return;
+
     const p = previewPoint(event);
     item.x = Math.round(p.x - dragOffset.x);
     item.y = Math.round(p.y - dragOffset.y);
@@ -1006,7 +1344,21 @@ function makeItemElement(item){
   });
 
   el.addEventListener("pointerup", ()=>{
+    clearTimeout(longPressTimer);
+    if(dragging) pushHistory();
     dragging = false;
+  });
+
+  el.addEventListener("pointercancel", ()=>{
+    clearTimeout(longPressTimer);
+    dragging = false;
+  });
+
+  el.addEventListener("contextmenu", event=>{
+    event.preventDefault();
+    selectedId = item.id;
+    showContextMenu(event.clientX,event.clientY);
+    render();
   });
 
   return el;
@@ -1020,9 +1372,7 @@ function previewPoint(event){
   };
 }
 
-/* =========================
-   SELECTED UI
-========================= */
+/* SELECTED UI */
 function refreshSelectedUI(){
   const item = selectedItem();
 
@@ -1031,6 +1381,8 @@ function refreshSelectedUI(){
     selectedPanel.style.display = "none";
     return;
   }
+
+  refreshingUI = true;
 
   noSelection.style.display = "none";
   selectedPanel.style.display = "block";
@@ -1045,17 +1397,33 @@ function refreshSelectedUI(){
   elBg.value = item.bg || "#00ffe1";
   elColor.value = item.color || "#eaffff";
   elFontSize.value = item.fontSize || 28;
+  elAlign.value = item.align || "center";
+  elWeight.value = item.weight || "700";
+  elPadding.value = item.padding ?? 12;
+  elBorder.value = item.border ?? 1;
+  elBorderColor.value = item.borderColor || "#ffffff";
+  elRotation.value = item.rotation || 0;
+  elCustomCss.value = item.customCss || "";
   elRadius.value = item.radius || 0;
   elGlow.value = item.glow || 0;
   elOpacity.value = Math.round((item.opacity ?? 1) * 100);
 
   fontRead.textContent = elFontSize.value;
+  paddingRead.textContent = elPadding.value;
+  borderRead.textContent = elBorder.value;
+  rotationRead.textContent = elRotation.value;
   radiusRead.textContent = elRadius.value;
   glowRead.textContent = elGlow.value;
   opacityRead.textContent = elOpacity.value;
+
+  lockBtn.textContent = item.locked ? "Unlock Element" : "Lock Element";
+
+  refreshingUI = false;
 }
 
 function updateSelectedFromUI(){
+  if(refreshingUI) return;
+
   const item = selectedItem();
   if(!item) return;
 
@@ -1069,6 +1437,13 @@ function updateSelectedFromUI(){
   item.bg = elBg.value;
   item.color = elColor.value;
   item.fontSize = Number(elFontSize.value) || 16;
+  item.align = elAlign.value;
+  item.weight = elWeight.value;
+  item.padding = Number(elPadding.value) || 0;
+  item.border = Number(elBorder.value) || 0;
+  item.borderColor = elBorderColor.value;
+  item.rotation = Number(elRotation.value) || 0;
+  item.customCss = elCustomCss.value;
   item.radius = Number(elRadius.value) || 0;
   item.glow = Number(elGlow.value) || 0;
   item.opacity = Number(elOpacity.value) / 100;
@@ -1076,48 +1451,135 @@ function updateSelectedFromUI(){
   render();
 }
 
-[
+const editInputs = [
   elName, elText, elHref, elX, elY, elW, elH,
-  elBg, elColor, elFontSize, elRadius, elGlow, elOpacity
-].forEach(input=>{
+  elBg, elColor, elFontSize, elAlign, elWeight,
+  elPadding, elBorder, elBorderColor, elRotation,
+  elCustomCss, elRadius, elGlow, elOpacity
+];
+
+editInputs.forEach(input=>{
+  input.addEventListener("focus", pushHistory);
   input.addEventListener("input", updateSelectedFromUI);
+  input.addEventListener("change", pushHistory);
 });
 
-duplicateBtn.onclick = ()=>{
+/* ACTIONS */
+function duplicateSelected(){
   const item = selectedItem();
   if(!item) return;
 
+  pushHistory();
+
   const copy = {
-    ...item,
+    ...JSON.parse(JSON.stringify(item)),
     id:newId(),
     name:(item.name || "Element") + " Copy",
     x:item.x + 30,
-    y:item.y + 30
+    y:item.y + 30,
+    locked:false
   };
 
   project.items.push(copy);
   selectedId = copy.id;
   render();
-};
+  pushHistory();
+}
 
-deleteBtn.onclick = ()=>{
+function deleteSelected(){
+  if(!selectedId) return;
+
+  pushHistory();
   project.items = project.items.filter(item => item.id !== selectedId);
   selectedId = null;
   render();
-};
+  pushHistory();
+  showToast("Deleted.");
+}
 
-forwardBtn.onclick = ()=>{
+function moveLayer(dir){
   const i = project.items.findIndex(item => item.id === selectedId);
-  if(i < 0 || i >= project.items.length - 1) return;
-  [project.items[i], project.items[i + 1]] = [project.items[i + 1], project.items[i]];
-  render();
-};
+  if(i < 0) return;
 
-backwardBtn.onclick = ()=>{
-  const i = project.items.findIndex(item => item.id === selectedId);
-  if(i <= 0) return;
-  [project.items[i], project.items[i - 1]] = [project.items[i - 1], project.items[i]];
+  pushHistory();
+
+  if(dir > 0 && i < project.items.length - 1){
+    [project.items[i], project.items[i + 1]] = [project.items[i + 1], project.items[i]];
+  }
+
+  if(dir < 0 && i > 0){
+    [project.items[i], project.items[i - 1]] = [project.items[i - 1], project.items[i]];
+  }
+
   render();
+  pushHistory();
+}
+
+function toggleLock(){
+  const item = selectedItem();
+  if(!item) return;
+  pushHistory();
+  item.locked = !item.locked;
+  render();
+  pushHistory();
+}
+
+function centerSelected(){
+  const item = selectedItem();
+  if(!item) return;
+
+  pushHistory();
+  item.x = Math.round((project.width - item.w) / 2);
+  item.y = Math.round((project.height - item.h) / 2);
+  render();
+  pushHistory();
+}
+
+function scaleSelected(multiplier){
+  const item = selectedItem();
+  if(!item) return;
+
+  pushHistory();
+  const centerX = item.x + item.w / 2;
+  const centerY = item.y + item.h / 2;
+
+  item.w = Math.max(10, Math.round(item.w * multiplier));
+  item.h = Math.max(10, Math.round(item.h * multiplier));
+  item.fontSize = Math.max(8, Math.round(item.fontSize * multiplier));
+
+  item.x = Math.round(centerX - item.w / 2);
+  item.y = Math.round(centerY - item.h / 2);
+
+  render();
+  pushHistory();
+}
+
+function fitSelectedToPage(){
+  const item = selectedItem();
+  if(!item) return;
+
+  pushHistory();
+  item.x = Math.round(project.width * 0.08);
+  item.y = Math.round(project.height * 0.12);
+  item.w = Math.round(project.width * 0.84);
+  item.h = Math.round(project.height * 0.68);
+  render();
+  pushHistory();
+}
+
+quickDeleteBtn.onclick = deleteSelected;
+quickCloneBtn.onclick = duplicateSelected;
+quickCenterBtn.onclick = centerSelected;
+quickScaleUpBtn.onclick = () => scaleSelected(1.15);
+quickScaleDownBtn.onclick = () => scaleSelected(0.85);
+lockBtn.onclick = toggleLock;
+fitBtn.onclick = fitSelectedToPage;
+forwardBtn.onclick = () => moveLayer(1);
+backwardBtn.onclick = () => moveLayer(-1);
+
+quickOptionsBtn.onclick = ()=>{
+  const rect = quickOptionsBtn.getBoundingClientRect();
+  showContextMenu(rect.left, rect.bottom + 6);
 };
 
 function renderLayers(){
@@ -1132,7 +1594,7 @@ function renderLayers(){
     const div = document.createElement("div");
     div.className = "layerItem";
     div.classList.toggle("active", item.id === selectedId);
-    div.textContent = `${item.type.toUpperCase()} • ${item.name || "Element"}`;
+    div.textContent = `${item.locked ? "🔒 " : ""}${item.type.toUpperCase()} • ${item.name || "Element"}`;
 
     div.onclick = ()=>{
       selectedId = item.id;
@@ -1143,20 +1605,48 @@ function renderLayers(){
   });
 }
 
-/* =========================
-   PAGE SETTINGS
-========================= */
-[
+/* CONTEXT MENU */
+function showContextMenu(x,y){
+  contextMenu.style.left = Math.min(x, innerWidth - 230) + "px";
+  contextMenu.style.top = Math.min(y, innerHeight - 330) + "px";
+  contextMenu.style.display = "block";
+}
+
+function hideContextMenu(){
+  contextMenu.style.display = "none";
+}
+
+document.addEventListener("click", event=>{
+  if(!contextMenu.contains(event.target)) hideContextMenu();
+});
+
+ctxDuplicate.onclick = () => { duplicateSelected(); hideContextMenu(); };
+ctxDelete.onclick = () => { deleteSelected(); hideContextMenu(); };
+ctxLock.onclick = () => { toggleLock(); hideContextMenu(); };
+ctxCenter.onclick = () => { centerSelected(); hideContextMenu(); };
+ctxScaleUp.onclick = () => { scaleSelected(1.15); hideContextMenu(); };
+ctxScaleDown.onclick = () => { scaleSelected(0.85); hideContextMenu(); };
+ctxForward.onclick = () => { moveLayer(1); hideContextMenu(); };
+ctxBackward.onclick = () => { moveLayer(-1); hideContextMenu(); };
+
+/* PAGE SETTINGS */
+const pageInputs = [
   pageTitle, bgType, bgA, bgB,
   effectMatrix, effectBottomGlow, effectScanlines, effectParticles
-].forEach(input=>{
-  input.addEventListener("input", render);
+];
+
+pageInputs.forEach(input=>{
+  input.addEventListener("focus", pushHistory);
+  input.addEventListener("input", ()=>render());
+  input.addEventListener("change", pushHistory);
 });
 
 applyPageSizeBtn.onclick = ()=>{
+  pushHistory();
   project.width = clamp(Number(pageW.value) || 960, 320, 2400);
   project.height = clamp(Number(pageH.value) || 540, 240, 1600);
   render();
+  pushHistory();
 };
 
 zoomInBtn.onclick = ()=>{
@@ -1169,9 +1659,28 @@ zoomOutBtn.onclick = ()=>{
   render();
 };
 
-/* =========================
-   EXPORT HTML
-========================= */
+clearAllBtn.onclick = ()=>{
+  if(!confirm("Clear all elements?")) return;
+  pushHistory();
+  project.items = [];
+  selectedId = null;
+  render();
+  pushHistory();
+};
+
+simpleModeBtn.onclick = ()=>{
+  document.body.classList.remove("advanced");
+  simpleModeBtn.classList.add("active");
+  advancedModeBtn.classList.remove("active");
+};
+
+advancedModeBtn.onclick = ()=>{
+  document.body.classList.add("advanced");
+  advancedModeBtn.classList.add("active");
+  simpleModeBtn.classList.remove("active");
+};
+
+/* EXPORT HTML */
 function generateHTML(){
   const cssItems = project.items.map((item,index)=>{
     return `.item${index}{
@@ -1183,15 +1692,19 @@ function generateHTML(){
   background:${item.type === "text" ? "transparent" : item.bg};
   color:${item.color};
   font-size:${item.fontSize}px;
+  font-weight:${item.weight};
+  text-align:${item.align};
   border-radius:${item.radius}px;
   opacity:${item.opacity};
   box-shadow:${item.glow > 0 ? `0 0 ${item.glow}px ${item.bg}` : "none"};
-  padding:${item.type === "image" ? "0" : "12px"};
-  border:${item.type === "text" ? "none" : "1px solid rgba(255,255,255,0.22)"};
+  padding:${item.type === "image" ? "0" : item.padding + "px"};
+  border:${item.border > 0 ? `${item.border}px solid ${hexToRgba(item.borderColor,0.55)}` : "none"};
+  transform:rotate(${item.rotation || 0}deg);
   overflow:hidden;
   white-space:pre-wrap;
+  ${item.customCss || ""}
 }`;
-  }).join("\\n\\n");
+  }).join("\n\n");
 
   const htmlItems = project.items.map((item,index)=>{
     if(item.type === "image"){
@@ -1203,54 +1716,14 @@ function generateHTML(){
     }
 
     return `<div class="item${index}">${escapeHTML(item.text)}</div>`;
-  }).join("\\n    ");
+  }).join("\n    ");
 
   const effectCSS = `
-${project.effects.matrix ? `
-.matrix{
-  position:absolute;
-  inset:0;
-  opacity:0.18;
-  pointer-events:none;
-  background-image:
-    linear-gradient(rgba(0,255,225,0.12) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,255,225,0.12) 1px, transparent 1px);
-  background-size:34px 34px;
-}` : ""}
-
-${project.effects.bottomGlow ? `
-.bottomGlow{
-  position:absolute;
-  left:0;
-  right:0;
-  bottom:0;
-  height:35%;
-  pointer-events:none;
-  background:linear-gradient(to top, rgba(0,255,225,0.25), transparent);
-}` : ""}
-
-${project.effects.scanlines ? `
-.scanlines{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  opacity:0.18;
-  background:repeating-linear-gradient(to bottom, rgba(255,255,255,0.08) 0 1px, transparent 1px 4px);
-}` : ""}
-
-${project.effects.particles ? `
-.particles{
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  background:
-    radial-gradient(circle at 20% 30%, rgba(0,255,225,0.45) 0 2px, transparent 3px),
-    radial-gradient(circle at 70% 60%, rgba(0,255,225,0.28) 0 2px, transparent 3px),
-    radial-gradient(circle at 40% 80%, rgba(255,79,216,0.35) 0 2px, transparent 3px);
-}` : ""}
+${project.effects.matrix ? `.matrix{position:absolute;inset:0;opacity:.18;pointer-events:none;background-image:linear-gradient(rgba(0,255,225,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,225,.12) 1px,transparent 1px);background-size:34px 34px;}` : ""}
+${project.effects.bottomGlow ? `.bottomGlow{position:absolute;left:0;right:0;bottom:0;height:35%;pointer-events:none;background:linear-gradient(to top,rgba(0,255,225,.25),transparent);}` : ""}
+${project.effects.scanlines ? `.scanlines{position:absolute;inset:0;pointer-events:none;opacity:.18;background:repeating-linear-gradient(to bottom,rgba(255,255,255,.08) 0 1px,transparent 1px 4px);}` : ""}
+${project.effects.particles ? `.particles{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 20% 30%,rgba(0,255,225,.45) 0 2px,transparent 3px),radial-gradient(circle at 70% 60%,rgba(0,255,225,.28) 0 2px,transparent 3px),radial-gradient(circle at 40% 80%,rgba(255,79,216,.35) 0 2px,transparent 3px);}` : ""}
 `;
-
-  const bg = getPageBackground();
 
   return `<!doctype html>
 <html lang="en">
@@ -1260,35 +1733,19 @@ ${project.effects.particles ? `
 <title>${escapeHTML(project.title)}</title>
 <style>
 *{box-sizing:border-box}
-html,body{
-  margin:0;
-  min-height:100%;
-  background:#000;
-  color:#eaffff;
-  font-family:monospace;
-}
-body{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-}
+html,body{margin:0;min-height:100%;background:#000;color:#eaffff;font-family:monospace}
+body{display:flex;align-items:center;justify-content:center;padding:20px}
 .page{
   position:relative;
   width:${project.width}px;
   height:${project.height}px;
   overflow:hidden;
-  background:${bg};
+  background:${getPageBackground()};
   border:1px solid #00ffe1;
   border-radius:16px;
-  box-shadow:0 0 24px rgba(0,255,225,0.25);
+  box-shadow:0 0 24px rgba(0,255,225,.25);
 }
-.button{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-decoration:none;
-}
+.button{display:flex;align-items:center;justify-content:center;text-decoration:none}
 ${effectCSS}
 ${cssItems}
 </style>
@@ -1334,10 +1791,9 @@ downloadBtn.onclick = ()=>{
   showToast("Downloaded index.html.");
 };
 
-/* =========================
-   PROJECT SAVE / LOAD
-========================= */
+/* SAVE / LOAD */
 function getProjectData(){
+  syncProjectFromPageInputs();
   return JSON.parse(JSON.stringify(project));
 }
 
@@ -1349,38 +1805,33 @@ function loadProjectData(data){
     bgType:data.bgType || "cyber",
     bgA:data.bgA || "#05070a",
     bgB:data.bgB || "#002b33",
-    effects:data.effects || {
-      matrix:true,
-      bottomGlow:true,
-      scanlines:false,
-      particles:false
-    },
-    items:Array.isArray(data.items) ? data.items : []
+    effects:data.effects || { matrix:true, bottomGlow:true, scanlines:false, particles:false },
+    items:Array.isArray(data.items) ? data.items.map(normalizeItem) : []
   };
 
   selectedId = null;
-
-  pageTitle.value = project.title;
-  pageW.value = project.width;
-  pageH.value = project.height;
-  bgType.value = project.bgType;
-  bgA.value = project.bgA;
-  bgB.value = project.bgB;
-  effectMatrix.checked = !!project.effects.matrix;
-  effectBottomGlow.checked = !!project.effects.bottomGlow;
-  effectScanlines.checked = !!project.effects.scanlines;
-  effectParticles.checked = !!project.effects.particles;
-
+  syncInputsFromProject();
   render();
+  pushHistory();
+}
+
+function normalizeItem(item){
+  return {
+    ...defaultItem(item.type || "text"),
+    ...item
+  };
 }
 
 saveLocalBtn.onclick = ()=>{
-  localStorage.setItem("JERRY_PAGE_FORGE_v1", JSON.stringify(getProjectData()));
+  localStorage.setItem("JERRY_PAGE_FORGE_v21", JSON.stringify(getProjectData()));
   showToast("Saved locally.");
 };
 
 loadLocalBtn.onclick = ()=>{
-  const raw = localStorage.getItem("JERRY_PAGE_FORGE_v1");
+  const raw =
+    localStorage.getItem("JERRY_PAGE_FORGE_v21") ||
+    localStorage.getItem("JERRY_PAGE_FORGE_v2") ||
+    localStorage.getItem("JERRY_PAGE_FORGE_v1");
 
   if(!raw){
     showToast("No local save found.");
@@ -1388,6 +1839,7 @@ loadLocalBtn.onclick = ()=>{
   }
 
   try{
+    pushHistory();
     loadProjectData(JSON.parse(raw));
     showToast("Loaded.");
   }catch(error){
@@ -1416,6 +1868,7 @@ projectInput.addEventListener("change", event=>{
 
   reader.onload = ()=>{
     try{
+      pushHistory();
       loadProjectData(JSON.parse(reader.result));
       showToast("Project imported.");
     }catch(error){
@@ -1427,9 +1880,32 @@ projectInput.addEventListener("change", event=>{
   reader.readAsText(file);
 });
 
-/* =========================
-   HELPERS / INIT
-========================= */
+/* KEYBOARD */
+document.addEventListener("keydown", event=>{
+  const tag = document.activeElement.tagName.toLowerCase();
+  if(tag === "input" || tag === "textarea" || tag === "select") return;
+
+  if(event.key === "Delete" || event.key === "Backspace"){
+    deleteSelected();
+  }
+
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d"){
+    event.preventDefault();
+    duplicateSelected();
+  }
+
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z"){
+    event.preventDefault();
+    undo();
+  }
+
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y"){
+    event.preventDefault();
+    redo();
+  }
+});
+
+/* HELPERS */
 function clamp(value,min,max){
   return Math.max(min, Math.min(max, value));
 }
@@ -1447,22 +1923,31 @@ function escapeAttr(text){
   return escapeHTML(text).replaceAll("`","&#096;");
 }
 
-function init(){
-  pageTitle.value = project.title;
-  pageW.value = project.width;
-  pageH.value = project.height;
-  bgType.value = project.bgType;
-  bgA.value = project.bgA;
-  bgB.value = project.bgB;
-  effectMatrix.checked = project.effects.matrix;
-  effectBottomGlow.checked = project.effects.bottomGlow;
-  effectScanlines.checked = project.effects.scanlines;
-  effectParticles.checked = project.effects.particles;
+function hexToRgba(hex, alpha){
+  const clean = String(hex || "#ffffff").replace("#","");
+  const r = parseInt(clean.substring(0,2),16) || 255;
+  const g = parseInt(clean.substring(2,4),16) || 255;
+  const b = parseInt(clean.substring(4,6),16) || 255;
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
-  addItem("text");
-  selectedId = project.items[0].id;
+function init(){
+  syncInputsFromProject();
+
+  const starter = defaultItem("text");
+  starter.text = "JERRY PAGE FORGE";
+  starter.x = 80;
+  starter.y = 80;
+  starter.w = 620;
+  starter.h = 80;
+  starter.fontSize = 48;
+
+  project.items.push(starter);
+  selectedId = starter.id;
+
   render();
-  showToast("Page Forge ready.");
+  pushHistory();
+  showToast("Page Forge v2.1 ready.");
 }
 
 init();
