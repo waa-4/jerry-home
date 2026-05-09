@@ -25,6 +25,14 @@ window.JERRY_PLUGINS = [
     description: "POSTER CREATOR :o",
     href: "./posterlab/" // you can point anywhere
   },
+
+  {
+    id: "page-forge",
+    title: "Page Forge",
+    icon: "📜",
+    description: "Easily create .html files is a visual way!",
+    href: "./pageforge/" // you can point anywhere
+  },
   
   {
   id: "jerry-clock",
