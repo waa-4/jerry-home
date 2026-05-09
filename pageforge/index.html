@@ -1,0 +1,1471 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>⚒️ JERRY Page Forge</title>
+
+<style>
+:root{
+  --cyan:#00ffe1;
+  --cyanGlow:rgba(0,255,225,0.55);
+  --panel:rgba(0,0,0,0.76);
+  --text:#eaffff;
+  --muted:#8feee4;
+  --stroke:rgba(0,255,225,0.42);
+  --radius:18px;
+  --mono:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+*{
+  box-sizing:border-box;
+}
+
+html,body{
+  margin:0;
+  height:100%;
+  background:#000;
+  color:var(--cyan);
+  font-family:var(--mono);
+  overflow:hidden;
+}
+
+#matrix{
+  position:fixed;
+  inset:0;
+  width:100%;
+  height:100%;
+  z-index:-5;
+}
+
+#darkWash{
+  position:fixed;
+  inset:0;
+  z-index:-4;
+  background:
+    radial-gradient(circle at top, rgba(0,255,225,0.11), transparent 35%),
+    linear-gradient(to bottom, rgba(0,0,0,0.08), rgba(0,0,0,0.94));
+  pointer-events:none;
+}
+
+#bottomGlow{
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:0;
+  height:260px;
+  background:linear-gradient(to top, rgba(0,255,225,0.25), rgba(0,255,225,0.1), transparent);
+  z-index:-3;
+  pointer-events:none;
+}
+
+.page{
+  width:min(1440px, calc(100% - 22px));
+  height:100vh;
+  margin:0 auto;
+  padding:12px 0;
+  display:grid;
+  grid-template-rows:auto 1fr;
+  gap:10px;
+}
+
+.topbar{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.brand h1{
+  margin:0;
+  font-size:clamp(24px,4vw,42px);
+  color:var(--cyan);
+  text-shadow:0 0 24px var(--cyanGlow);
+}
+
+.brand span{
+  color:var(--muted);
+  font-size:12px;
+}
+
+.navLinks{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.navLinks a,
+.navLinks button{
+  color:var(--text);
+  text-decoration:none;
+  border:1px solid var(--stroke);
+  background:rgba(0,0,0,0.5);
+  padding:9px 12px;
+  border-radius:999px;
+  transition:0.18s;
+  font-family:var(--mono);
+  cursor:pointer;
+}
+
+.navLinks a:hover,
+.navLinks button:hover{
+  color:#000;
+  background:var(--cyan);
+  box-shadow:0 0 18px var(--cyanGlow);
+}
+
+.app{
+  min-height:0;
+  display:grid;
+  grid-template-columns:300px 1fr 320px;
+  gap:10px;
+}
+
+.panel{
+  min-height:0;
+  overflow:auto;
+  background:
+    linear-gradient(180deg, rgba(0,255,225,0.06), transparent),
+    var(--panel);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  padding:12px;
+  box-shadow:0 0 20px rgba(0,255,225,0.14);
+}
+
+.panel h2{
+  margin:0 0 10px;
+  font-size:16px;
+  color:var(--cyan);
+  text-shadow:0 0 12px var(--cyanGlow);
+}
+
+.panel p,
+.panel label,
+.smallNote{
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.4;
+}
+
+label{
+  display:block;
+  margin:10px 0 6px;
+}
+
+button,
+input,
+select,
+textarea{
+  width:100%;
+  background:rgba(0,0,0,0.72);
+  color:inherit;
+  border:1px solid currentColor;
+  border-radius:12px;
+  padding:9px 10px;
+  font-family:var(--mono);
+  outline:none;
+}
+
+button{
+  cursor:pointer;
+  transition:0.16s;
+}
+
+button:hover{
+  background:currentColor;
+  color:black;
+  box-shadow:0 0 16px currentColor;
+}
+
+button.active{
+  background:var(--cyan);
+  color:black;
+  box-shadow:0 0 18px var(--cyanGlow);
+}
+
+input[type="color"]{
+  height:38px;
+  padding:0;
+}
+
+textarea{
+  min-height:130px;
+  resize:vertical;
+}
+
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.toolGrid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.stage{
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.previewShell{
+  flex:1;
+  min-height:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:auto;
+  padding:16px;
+  background:
+    radial-gradient(circle at center, rgba(0,255,225,0.05), transparent 55%),
+    rgba(0,0,0,0.72);
+  border:1px solid var(--stroke);
+  border-radius:var(--radius);
+  box-shadow:0 0 24px rgba(0,255,225,0.14);
+}
+
+#preview{
+  position:relative;
+  width:960px;
+  height:540px;
+  min-width:960px;
+  min-height:540px;
+  overflow:hidden;
+  background:#05070a;
+  border:1px solid var(--cyan);
+  border-radius:16px;
+  box-shadow:0 0 24px rgba(0,255,225,0.25);
+  transform-origin:center;
+  user-select:none;
+}
+
+.previewItem{
+  position:absolute;
+  cursor:grab;
+  border:1px dashed transparent;
+}
+
+.previewItem:active{
+  cursor:grabbing;
+}
+
+.previewItem.selected{
+  border-color:#00ffe1;
+  box-shadow:0 0 14px rgba(0,255,225,0.55);
+}
+
+.previewText{
+  white-space:pre-wrap;
+  overflow:hidden;
+}
+
+.previewButton{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+}
+
+.previewCard{
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+}
+
+.previewImage{
+  object-fit:cover;
+  display:block;
+}
+
+.statusBar{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  align-items:center;
+}
+
+.status{
+  color:var(--muted);
+  font-size:12px;
+  padding:9px 12px;
+  background:rgba(0,0,0,0.65);
+  border:1px solid rgba(0,255,225,0.25);
+  border-radius:999px;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
+.layerList{
+  display:grid;
+  gap:6px;
+  max-height:170px;
+  overflow:auto;
+}
+
+.layerItem{
+  border:1px solid rgba(0,255,225,0.22);
+  background:rgba(0,0,0,0.42);
+  border-radius:12px;
+  padding:8px;
+  color:var(--muted);
+  cursor:pointer;
+  font-size:12px;
+}
+
+.layerItem.active{
+  color:var(--cyan);
+  border-color:var(--cyan);
+  box-shadow:0 0 12px rgba(0,255,225,0.2);
+}
+
+.hiddenFile{
+  display:none;
+}
+
+.codeModal{
+  position:fixed;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:50;
+  background:rgba(0,0,0,0.78);
+  padding:16px;
+}
+
+.codeBoxPanel{
+  width:min(980px,96vw);
+  max-height:90vh;
+  overflow:auto;
+  background:#050505;
+  border:1px solid var(--cyan);
+  border-radius:20px;
+  padding:14px;
+  box-shadow:0 0 30px rgba(0,255,225,0.35);
+}
+
+#codeOutput{
+  width:100%;
+  height:55vh;
+  color:#00ffe1;
+  background:#000;
+}
+
+#toast{
+  position:fixed;
+  left:50%;
+  bottom:18px;
+  transform:translateX(-50%) translateY(20px);
+  opacity:0;
+  z-index:70;
+  background:rgba(0,0,0,0.78);
+  color:var(--cyan);
+  border:1px solid currentColor;
+  box-shadow:0 0 18px currentColor;
+  padding:10px 14px;
+  border-radius:999px;
+  transition:0.2s;
+  pointer-events:none;
+}
+
+#toast.show{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+@media(max-width:1100px){
+  html,body{
+    overflow:auto;
+  }
+
+  .page{
+    height:auto;
+  }
+
+  .app{
+    grid-template-columns:1fr;
+  }
+
+  .previewShell{
+    min-height:620px;
+  }
+}
+
+@media(max-width:580px){
+  .row,
+  .toolGrid{
+    grid-template-columns:1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+<canvas id="matrix"></canvas>
+<div id="darkWash"></div>
+<div id="bottomGlow"></div>
+<div id="toast">Ready.</div>
+
+<div class="page">
+
+  <header class="topbar">
+    <div class="brand">
+      <h1>⚒️ JERRY Page Forge</h1>
+      <span>visual HTML creator • build pages without hand-writing everything</span>
+    </div>
+
+    <nav class="navLinks">
+      <a href="../">JERRY Tools</a>
+      <button id="showCodeBtn">Show HTML</button>
+      <button id="downloadBtn">Download HTML</button>
+    </nav>
+  </header>
+
+  <main class="app">
+
+    <aside class="panel">
+      <h2>Add Elements</h2>
+
+      <div class="toolGrid">
+        <button id="addTextBtn">Add Text</button>
+        <button id="addButtonBtn">Add Button</button>
+        <button id="addCardBtn">Add Card</button>
+        <button id="addBoxBtn">Add Box</button>
+      </div>
+
+      <button id="addImageBtn" style="margin-top:8px;">Add Image</button>
+      <input id="imageInput" class="hiddenFile" type="file" accept="image/*" />
+
+      <h2 style="margin-top:16px;">Page Setup</h2>
+
+      <label>Page Title</label>
+      <input id="pageTitle" value="My JERRY Page" />
+
+      <label>Page Width</label>
+      <input id="pageW" type="number" min="320" max="2400" value="960" />
+
+      <label>Page Height</label>
+      <input id="pageH" type="number" min="240" max="1600" value="540" />
+
+      <button id="applyPageSizeBtn" style="margin-top:8px;">Apply Size</button>
+
+      <label>Background Type</label>
+      <select id="bgType">
+        <option value="solid">Solid</option>
+        <option value="gradient">Gradient</option>
+        <option value="cyber">Cyber Gradient</option>
+      </select>
+
+      <label>Background Color A</label>
+      <input id="bgA" type="color" value="#05070a" />
+
+      <label>Background Color B</label>
+      <input id="bgB" type="color" value="#002b33" />
+
+      <h2 style="margin-top:16px;">Effects</h2>
+
+      <label><input id="effectMatrix" type="checkbox" checked style="width:auto;" /> Matrix background</label>
+      <label><input id="effectBottomGlow" type="checkbox" checked style="width:auto;" /> Bottom glow</label>
+      <label><input id="effectScanlines" type="checkbox" style="width:auto;" /> Scanlines</label>
+      <label><input id="effectParticles" type="checkbox" style="width:auto;" /> Floating particles</label>
+
+      <h2 style="margin-top:16px;">Project</h2>
+
+      <div class="row">
+        <button id="saveLocalBtn">Save</button>
+        <button id="loadLocalBtn">Load</button>
+      </div>
+
+      <div class="row" style="margin-top:8px;">
+        <button id="exportProjectBtn">Export JSON</button>
+        <button id="importProjectBtn">Import JSON</button>
+      </div>
+
+      <input id="projectInput" class="hiddenFile" type="file" accept=".json,application/json" />
+
+      <p class="smallNote">
+        Tip: drag elements in the preview. Select an element to edit it on the right.
+      </p>
+    </aside>
+
+    <section class="stage">
+      <div class="previewShell">
+        <div id="preview"></div>
+      </div>
+
+      <div class="statusBar">
+        <div class="status" id="status">Ready • 960×540</div>
+        <div class="row">
+          <button id="zoomOutBtn">Zoom -</button>
+          <button id="zoomInBtn">Zoom +</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <h2>Selected Element</h2>
+
+      <div id="noSelection" class="smallNote">Nothing selected.</div>
+
+      <div id="selectedPanel" style="display:none;">
+        <label>Name</label>
+        <input id="elName" />
+
+        <label>Text / HTML</label>
+        <textarea id="elText"></textarea>
+
+        <label>Link URL</label>
+        <input id="elHref" placeholder="https://example.com" />
+
+        <div class="row">
+          <div>
+            <label>X</label>
+            <input id="elX" type="number" />
+          </div>
+          <div>
+            <label>Y</label>
+            <input id="elY" type="number" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>Width</label>
+            <input id="elW" type="number" />
+          </div>
+          <div>
+            <label>Height</label>
+            <input id="elH" type="number" />
+          </div>
+        </div>
+
+        <label>Background Color</label>
+        <input id="elBg" type="color" value="#00ffe1" />
+
+        <label>Text Color</label>
+        <input id="elColor" type="color" value="#eaffff" />
+
+        <label>Font Size: <span id="fontRead">28</span></label>
+        <input id="elFontSize" type="range" min="8" max="120" value="28" />
+
+        <label>Border Radius: <span id="radiusRead">16</span></label>
+        <input id="elRadius" type="range" min="0" max="80" value="16" />
+
+        <label>Glow: <span id="glowRead">20</span></label>
+        <input id="elGlow" type="range" min="0" max="80" value="20" />
+
+        <label>Opacity: <span id="opacityRead">100</span>%</label>
+        <input id="elOpacity" type="range" min="0" max="100" value="100" />
+
+        <div class="row" style="margin-top:8px;">
+          <button id="duplicateBtn">Duplicate</button>
+          <button id="deleteBtn">Delete</button>
+        </div>
+
+        <div class="row" style="margin-top:8px;">
+          <button id="forwardBtn">Forward</button>
+          <button id="backwardBtn">Backward</button>
+        </div>
+      </div>
+
+      <h2 style="margin-top:16px;">Layers</h2>
+      <div id="layerList" class="layerList"></div>
+    </aside>
+
+  </main>
+</div>
+
+<div id="codeModal" class="codeModal">
+  <div class="codeBoxPanel">
+    <h2>Generated HTML</h2>
+    <textarea id="codeOutput" spellcheck="false"></textarea>
+    <div class="row" style="margin-top:8px;">
+      <button id="copyCodeBtn">Copy HTML</button>
+      <button id="closeCodeBtn">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================
+   JERRY BACKGROUND
+========================= */
+const matrix = document.getElementById("matrix");
+const mctx = matrix.getContext("2d");
+const matrixChars = "01<>/=+-JERRYPAGEFORGE";
+const matrixSize = 16;
+let matrixDrops = [];
+
+function resizeMatrix(){
+  matrix.width = innerWidth;
+  matrix.height = innerHeight;
+  matrixDrops = Array(Math.floor(matrix.width / matrixSize)).fill(1);
+}
+
+resizeMatrix();
+addEventListener("resize", resizeMatrix);
+
+function drawMatrix(){
+  mctx.fillStyle = "rgba(0,0,0,0.08)";
+  mctx.fillRect(0,0,matrix.width,matrix.height);
+  mctx.fillStyle = getComputedStyle(document.body).color;
+  mctx.font = matrixSize + "px monospace";
+
+  for(let i = 0; i < matrixDrops.length; i++){
+    const ch = matrixChars[Math.floor(Math.random() * matrixChars.length)];
+    mctx.fillText(ch, i * matrixSize, matrixDrops[i] * matrixSize);
+
+    if(matrixDrops[i] * matrixSize > matrix.height && Math.random() > 0.975){
+      matrixDrops[i] = 0;
+    }
+
+    matrixDrops[i]++;
+  }
+}
+
+setInterval(drawMatrix, 33);
+
+/* =========================
+   ELEMENTS
+========================= */
+const preview = document.getElementById("preview");
+const status = document.getElementById("status");
+const toast = document.getElementById("toast");
+
+const pageTitle = document.getElementById("pageTitle");
+const pageW = document.getElementById("pageW");
+const pageH = document.getElementById("pageH");
+const applyPageSizeBtn = document.getElementById("applyPageSizeBtn");
+
+const bgType = document.getElementById("bgType");
+const bgA = document.getElementById("bgA");
+const bgB = document.getElementById("bgB");
+
+const effectMatrix = document.getElementById("effectMatrix");
+const effectBottomGlow = document.getElementById("effectBottomGlow");
+const effectScanlines = document.getElementById("effectScanlines");
+const effectParticles = document.getElementById("effectParticles");
+
+const addTextBtn = document.getElementById("addTextBtn");
+const addButtonBtn = document.getElementById("addButtonBtn");
+const addCardBtn = document.getElementById("addCardBtn");
+const addBoxBtn = document.getElementById("addBoxBtn");
+const addImageBtn = document.getElementById("addImageBtn");
+const imageInput = document.getElementById("imageInput");
+
+const noSelection = document.getElementById("noSelection");
+const selectedPanel = document.getElementById("selectedPanel");
+const layerList = document.getElementById("layerList");
+
+const elName = document.getElementById("elName");
+const elText = document.getElementById("elText");
+const elHref = document.getElementById("elHref");
+const elX = document.getElementById("elX");
+const elY = document.getElementById("elY");
+const elW = document.getElementById("elW");
+const elH = document.getElementById("elH");
+const elBg = document.getElementById("elBg");
+const elColor = document.getElementById("elColor");
+const elFontSize = document.getElementById("elFontSize");
+const elRadius = document.getElementById("elRadius");
+const elGlow = document.getElementById("elGlow");
+const elOpacity = document.getElementById("elOpacity");
+
+const fontRead = document.getElementById("fontRead");
+const radiusRead = document.getElementById("radiusRead");
+const glowRead = document.getElementById("glowRead");
+const opacityRead = document.getElementById("opacityRead");
+
+const duplicateBtn = document.getElementById("duplicateBtn");
+const deleteBtn = document.getElementById("deleteBtn");
+const forwardBtn = document.getElementById("forwardBtn");
+const backwardBtn = document.getElementById("backwardBtn");
+
+const zoomInBtn = document.getElementById("zoomInBtn");
+const zoomOutBtn = document.getElementById("zoomOutBtn");
+
+const showCodeBtn = document.getElementById("showCodeBtn");
+const downloadBtn = document.getElementById("downloadBtn");
+const codeModal = document.getElementById("codeModal");
+const codeOutput = document.getElementById("codeOutput");
+const copyCodeBtn = document.getElementById("copyCodeBtn");
+const closeCodeBtn = document.getElementById("closeCodeBtn");
+
+const saveLocalBtn = document.getElementById("saveLocalBtn");
+const loadLocalBtn = document.getElementById("loadLocalBtn");
+const exportProjectBtn = document.getElementById("exportProjectBtn");
+const importProjectBtn = document.getElementById("importProjectBtn");
+const projectInput = document.getElementById("projectInput");
+
+/* =========================
+   STATE
+========================= */
+let project = {
+  title:"My JERRY Page",
+  width:960,
+  height:540,
+  bgType:"cyber",
+  bgA:"#05070a",
+  bgB:"#002b33",
+  effects:{
+    matrix:true,
+    bottomGlow:true,
+    scanlines:false,
+    particles:false
+  },
+  items:[]
+};
+
+let selectedId = null;
+let zoom = 0.8;
+let dragging = false;
+let dragOffset = {x:0,y:0};
+
+function newId(){
+  return "item_" + Math.random().toString(36).slice(2,9) + "_" + Date.now();
+}
+
+function selectedItem(){
+  return project.items.find(item => item.id === selectedId);
+}
+
+function showToast(message){
+  toast.textContent = message;
+  toast.classList.add("show");
+
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(()=>{
+    toast.classList.remove("show");
+  }, 1300);
+}
+
+/* =========================
+   ADD ITEMS
+========================= */
+function addItem(type){
+  const base = {
+    id:newId(),
+    type,
+    name:type.charAt(0).toUpperCase() + type.slice(1),
+    x:80,
+    y:80,
+    w:260,
+    h:90,
+    text:"New " + type,
+    href:"",
+    bg:"#00ffe1",
+    color:"#eaffff",
+    fontSize:28,
+    radius:16,
+    glow:20,
+    opacity:1,
+    dataUrl:""
+  };
+
+  if(type === "text"){
+    base.text = "JERRY TEXT";
+    base.bg = "#000000";
+    base.color = "#00ffe1";
+    base.w = 360;
+    base.h = 70;
+    base.fontSize = 42;
+    base.glow = 18;
+  }
+
+  if(type === "button"){
+    base.text = "Open Link";
+    base.href = "https://waa-4.github.io/jerry-home/";
+    base.bg = "#00ffe1";
+    base.color = "#000000";
+    base.w = 190;
+    base.h = 58;
+  }
+
+  if(type === "card"){
+    base.text = "Card Title\\nThis is a simple card made in Page Forge.";
+    base.bg = "#071014";
+    base.color = "#eaffff";
+    base.w = 320;
+    base.h = 180;
+  }
+
+  if(type === "box"){
+    base.text = "";
+    base.bg = "#17343a";
+    base.w = 220;
+    base.h = 140;
+  }
+
+  project.items.push(base);
+  selectedId = base.id;
+  render();
+  showToast(type + " added.");
+}
+
+addTextBtn.onclick = () => addItem("text");
+addButtonBtn.onclick = () => addItem("button");
+addCardBtn.onclick = () => addItem("card");
+addBoxBtn.onclick = () => addItem("box");
+
+addImageBtn.onclick = () => imageInput.click();
+
+imageInput.addEventListener("change", event=>{
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = ()=>{
+    const item = {
+      id:newId(),
+      type:"image",
+      name:file.name || "Image",
+      x:100,
+      y:100,
+      w:260,
+      h:160,
+      text:"",
+      href:"",
+      bg:"#000000",
+      color:"#ffffff",
+      fontSize:16,
+      radius:14,
+      glow:18,
+      opacity:1,
+      dataUrl:reader.result
+    };
+
+    project.items.push(item);
+    selectedId = item.id;
+    render();
+    showToast("Image added.");
+  };
+
+  reader.readAsDataURL(file);
+});
+
+/* =========================
+   RENDER
+========================= */
+function render(){
+  project.title = pageTitle.value;
+  project.width = clamp(Number(pageW.value) || 960, 320, 2400);
+  project.height = clamp(Number(pageH.value) || 540, 240, 1600);
+  project.bgType = bgType.value;
+  project.bgA = bgA.value;
+  project.bgB = bgB.value;
+  project.effects.matrix = effectMatrix.checked;
+  project.effects.bottomGlow = effectBottomGlow.checked;
+  project.effects.scanlines = effectScanlines.checked;
+  project.effects.particles = effectParticles.checked;
+
+  preview.style.width = project.width + "px";
+  preview.style.height = project.height + "px";
+  preview.style.minWidth = project.width + "px";
+  preview.style.minHeight = project.height + "px";
+  preview.style.transform = `scale(${zoom})`;
+  preview.style.background = getPageBackground();
+
+  preview.innerHTML = "";
+
+  if(project.effects.matrix) preview.appendChild(makePreviewMatrixLayer());
+  if(project.effects.particles) preview.appendChild(makePreviewParticlesLayer());
+  if(project.effects.bottomGlow) preview.appendChild(makePreviewBottomGlow());
+  if(project.effects.scanlines) preview.appendChild(makePreviewScanlines());
+
+  for(const item of project.items){
+    preview.appendChild(makeItemElement(item));
+  }
+
+  renderLayers();
+  refreshSelectedUI();
+  status.textContent = `Ready • ${project.width}×${project.height} • ${project.items.length} elements • Zoom ${zoom.toFixed(2)}x`;
+}
+
+function getPageBackground(){
+  if(project.bgType === "solid"){
+    return project.bgA;
+  }
+
+  if(project.bgType === "gradient"){
+    return `linear-gradient(135deg, ${project.bgA}, ${project.bgB})`;
+  }
+
+  return `
+    radial-gradient(circle at top, rgba(0,255,225,0.16), transparent 38%),
+    linear-gradient(135deg, ${project.bgA}, ${project.bgB})
+  `;
+}
+
+function makePreviewMatrixLayer(){
+  const div = document.createElement("div");
+  div.style.position = "absolute";
+  div.style.inset = "0";
+  div.style.opacity = "0.18";
+  div.style.pointerEvents = "none";
+  div.style.backgroundImage =
+    "linear-gradient(rgba(0,255,225,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,225,0.12) 1px, transparent 1px)";
+  div.style.backgroundSize = "34px 34px";
+  return div;
+}
+
+function makePreviewParticlesLayer(){
+  const div = document.createElement("div");
+  div.style.position = "absolute";
+  div.style.inset = "0";
+  div.style.pointerEvents = "none";
+  div.style.background =
+    "radial-gradient(circle at 20% 30%, rgba(0,255,225,0.45) 0 2px, transparent 3px), radial-gradient(circle at 70% 60%, rgba(0,255,225,0.28) 0 2px, transparent 3px), radial-gradient(circle at 40% 80%, rgba(255,79,216,0.35) 0 2px, transparent 3px)";
+  return div;
+}
+
+function makePreviewBottomGlow(){
+  const div = document.createElement("div");
+  div.style.position = "absolute";
+  div.style.left = "0";
+  div.style.right = "0";
+  div.style.bottom = "0";
+  div.style.height = "35%";
+  div.style.pointerEvents = "none";
+  div.style.background = "linear-gradient(to top, rgba(0,255,225,0.25), transparent)";
+  return div;
+}
+
+function makePreviewScanlines(){
+  const div = document.createElement("div");
+  div.style.position = "absolute";
+  div.style.inset = "0";
+  div.style.pointerEvents = "none";
+  div.style.opacity = "0.18";
+  div.style.background = "repeating-linear-gradient(to bottom, rgba(255,255,255,0.08) 0 1px, transparent 1px 4px)";
+  return div;
+}
+
+function makeItemElement(item){
+  let el;
+
+  if(item.type === "button"){
+    el = document.createElement("a");
+    el.className = "previewItem previewButton";
+    el.href = item.href || "#";
+    el.onclick = e => e.preventDefault();
+  }else if(item.type === "image"){
+    el = document.createElement("img");
+    el.className = "previewItem previewImage";
+    el.src = item.dataUrl;
+  }else{
+    el = document.createElement("div");
+    el.className = "previewItem " + (item.type === "card" ? "previewCard" : "previewText");
+  }
+
+  el.dataset.id = item.id;
+  el.classList.toggle("selected", item.id === selectedId);
+
+  el.style.left = item.x + "px";
+  el.style.top = item.y + "px";
+  el.style.width = item.w + "px";
+  el.style.height = item.h + "px";
+  el.style.background = item.type === "text" ? "transparent" : item.bg;
+  el.style.color = item.color;
+  el.style.fontSize = item.fontSize + "px";
+  el.style.borderRadius = item.radius + "px";
+  el.style.opacity = item.opacity;
+  el.style.boxShadow = item.glow > 0 ? `0 0 ${item.glow}px ${item.bg}` : "none";
+  el.style.padding = item.type === "image" ? "0" : "12px";
+  el.style.display = item.type === "box" ? "block" : el.style.display;
+  el.style.border = item.type === "text" ? "none" : "1px solid rgba(255,255,255,0.22)";
+
+  if(item.type !== "image"){
+    el.textContent = item.text;
+  }
+
+  el.addEventListener("pointerdown", event=>{
+    event.preventDefault();
+    selectedId = item.id;
+    const p = previewPoint(event);
+    dragging = true;
+    dragOffset.x = p.x - item.x;
+    dragOffset.y = p.y - item.y;
+    el.setPointerCapture(event.pointerId);
+    render();
+  });
+
+  el.addEventListener("pointermove", event=>{
+    if(!dragging || selectedId !== item.id) return;
+    const p = previewPoint(event);
+    item.x = Math.round(p.x - dragOffset.x);
+    item.y = Math.round(p.y - dragOffset.y);
+    render();
+  });
+
+  el.addEventListener("pointerup", ()=>{
+    dragging = false;
+  });
+
+  return el;
+}
+
+function previewPoint(event){
+  const rect = preview.getBoundingClientRect();
+  return {
+    x:(event.clientX - rect.left) * (project.width / rect.width),
+    y:(event.clientY - rect.top) * (project.height / rect.height)
+  };
+}
+
+/* =========================
+   SELECTED UI
+========================= */
+function refreshSelectedUI(){
+  const item = selectedItem();
+
+  if(!item){
+    noSelection.style.display = "block";
+    selectedPanel.style.display = "none";
+    return;
+  }
+
+  noSelection.style.display = "none";
+  selectedPanel.style.display = "block";
+
+  elName.value = item.name || "";
+  elText.value = item.text || "";
+  elHref.value = item.href || "";
+  elX.value = item.x;
+  elY.value = item.y;
+  elW.value = item.w;
+  elH.value = item.h;
+  elBg.value = item.bg || "#00ffe1";
+  elColor.value = item.color || "#eaffff";
+  elFontSize.value = item.fontSize || 28;
+  elRadius.value = item.radius || 0;
+  elGlow.value = item.glow || 0;
+  elOpacity.value = Math.round((item.opacity ?? 1) * 100);
+
+  fontRead.textContent = elFontSize.value;
+  radiusRead.textContent = elRadius.value;
+  glowRead.textContent = elGlow.value;
+  opacityRead.textContent = elOpacity.value;
+}
+
+function updateSelectedFromUI(){
+  const item = selectedItem();
+  if(!item) return;
+
+  item.name = elName.value || item.name;
+  item.text = elText.value;
+  item.href = elHref.value;
+  item.x = Number(elX.value) || 0;
+  item.y = Number(elY.value) || 0;
+  item.w = Math.max(10, Number(elW.value) || 10);
+  item.h = Math.max(10, Number(elH.value) || 10);
+  item.bg = elBg.value;
+  item.color = elColor.value;
+  item.fontSize = Number(elFontSize.value) || 16;
+  item.radius = Number(elRadius.value) || 0;
+  item.glow = Number(elGlow.value) || 0;
+  item.opacity = Number(elOpacity.value) / 100;
+
+  render();
+}
+
+[
+  elName, elText, elHref, elX, elY, elW, elH,
+  elBg, elColor, elFontSize, elRadius, elGlow, elOpacity
+].forEach(input=>{
+  input.addEventListener("input", updateSelectedFromUI);
+});
+
+duplicateBtn.onclick = ()=>{
+  const item = selectedItem();
+  if(!item) return;
+
+  const copy = {
+    ...item,
+    id:newId(),
+    name:(item.name || "Element") + " Copy",
+    x:item.x + 30,
+    y:item.y + 30
+  };
+
+  project.items.push(copy);
+  selectedId = copy.id;
+  render();
+};
+
+deleteBtn.onclick = ()=>{
+  project.items = project.items.filter(item => item.id !== selectedId);
+  selectedId = null;
+  render();
+};
+
+forwardBtn.onclick = ()=>{
+  const i = project.items.findIndex(item => item.id === selectedId);
+  if(i < 0 || i >= project.items.length - 1) return;
+  [project.items[i], project.items[i + 1]] = [project.items[i + 1], project.items[i]];
+  render();
+};
+
+backwardBtn.onclick = ()=>{
+  const i = project.items.findIndex(item => item.id === selectedId);
+  if(i <= 0) return;
+  [project.items[i], project.items[i - 1]] = [project.items[i - 1], project.items[i]];
+  render();
+};
+
+function renderLayers(){
+  layerList.innerHTML = "";
+
+  if(project.items.length === 0){
+    layerList.innerHTML = `<div class="smallNote">No elements yet.</div>`;
+    return;
+  }
+
+  [...project.items].reverse().forEach(item=>{
+    const div = document.createElement("div");
+    div.className = "layerItem";
+    div.classList.toggle("active", item.id === selectedId);
+    div.textContent = `${item.type.toUpperCase()} • ${item.name || "Element"}`;
+
+    div.onclick = ()=>{
+      selectedId = item.id;
+      render();
+    };
+
+    layerList.appendChild(div);
+  });
+}
+
+/* =========================
+   PAGE SETTINGS
+========================= */
+[
+  pageTitle, bgType, bgA, bgB,
+  effectMatrix, effectBottomGlow, effectScanlines, effectParticles
+].forEach(input=>{
+  input.addEventListener("input", render);
+});
+
+applyPageSizeBtn.onclick = ()=>{
+  project.width = clamp(Number(pageW.value) || 960, 320, 2400);
+  project.height = clamp(Number(pageH.value) || 540, 240, 1600);
+  render();
+};
+
+zoomInBtn.onclick = ()=>{
+  zoom = clamp(zoom * 1.12, 0.2, 2);
+  render();
+};
+
+zoomOutBtn.onclick = ()=>{
+  zoom = clamp(zoom * 0.88, 0.2, 2);
+  render();
+};
+
+/* =========================
+   EXPORT HTML
+========================= */
+function generateHTML(){
+  const cssItems = project.items.map((item,index)=>{
+    return `.item${index}{
+  position:absolute;
+  left:${item.x}px;
+  top:${item.y}px;
+  width:${item.w}px;
+  height:${item.h}px;
+  background:${item.type === "text" ? "transparent" : item.bg};
+  color:${item.color};
+  font-size:${item.fontSize}px;
+  border-radius:${item.radius}px;
+  opacity:${item.opacity};
+  box-shadow:${item.glow > 0 ? `0 0 ${item.glow}px ${item.bg}` : "none"};
+  padding:${item.type === "image" ? "0" : "12px"};
+  border:${item.type === "text" ? "none" : "1px solid rgba(255,255,255,0.22)"};
+  overflow:hidden;
+  white-space:pre-wrap;
+}`;
+  }).join("\\n\\n");
+
+  const htmlItems = project.items.map((item,index)=>{
+    if(item.type === "image"){
+      return `<img class="item${index}" src="${item.dataUrl}" alt="${escapeAttr(item.name)}">`;
+    }
+
+    if(item.type === "button"){
+      return `<a class="item${index} button" href="${escapeAttr(item.href || "#")}">${escapeHTML(item.text)}</a>`;
+    }
+
+    return `<div class="item${index}">${escapeHTML(item.text)}</div>`;
+  }).join("\\n    ");
+
+  const effectCSS = `
+${project.effects.matrix ? `
+.matrix{
+  position:absolute;
+  inset:0;
+  opacity:0.18;
+  pointer-events:none;
+  background-image:
+    linear-gradient(rgba(0,255,225,0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,255,225,0.12) 1px, transparent 1px);
+  background-size:34px 34px;
+}` : ""}
+
+${project.effects.bottomGlow ? `
+.bottomGlow{
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:35%;
+  pointer-events:none;
+  background:linear-gradient(to top, rgba(0,255,225,0.25), transparent);
+}` : ""}
+
+${project.effects.scanlines ? `
+.scanlines{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:0.18;
+  background:repeating-linear-gradient(to bottom, rgba(255,255,255,0.08) 0 1px, transparent 1px 4px);
+}` : ""}
+
+${project.effects.particles ? `
+.particles{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(0,255,225,0.45) 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 60%, rgba(0,255,225,0.28) 0 2px, transparent 3px),
+    radial-gradient(circle at 40% 80%, rgba(255,79,216,0.35) 0 2px, transparent 3px);
+}` : ""}
+`;
+
+  const bg = getPageBackground();
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${escapeHTML(project.title)}</title>
+<style>
+*{box-sizing:border-box}
+html,body{
+  margin:0;
+  min-height:100%;
+  background:#000;
+  color:#eaffff;
+  font-family:monospace;
+}
+body{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.page{
+  position:relative;
+  width:${project.width}px;
+  height:${project.height}px;
+  overflow:hidden;
+  background:${bg};
+  border:1px solid #00ffe1;
+  border-radius:16px;
+  box-shadow:0 0 24px rgba(0,255,225,0.25);
+}
+.button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-decoration:none;
+}
+${effectCSS}
+${cssItems}
+</style>
+</head>
+<body>
+  <div class="page">
+    ${project.effects.matrix ? `<div class="matrix"></div>` : ""}
+    ${project.effects.particles ? `<div class="particles"></div>` : ""}
+    ${project.effects.bottomGlow ? `<div class="bottomGlow"></div>` : ""}
+    ${project.effects.scanlines ? `<div class="scanlines"></div>` : ""}
+    ${htmlItems}
+  </div>
+</body>
+</html>`;
+}
+
+showCodeBtn.onclick = ()=>{
+  codeOutput.value = generateHTML();
+  codeModal.style.display = "flex";
+};
+
+closeCodeBtn.onclick = ()=>{
+  codeModal.style.display = "none";
+};
+
+copyCodeBtn.onclick = async ()=>{
+  try{
+    await navigator.clipboard.writeText(codeOutput.value);
+    showToast("HTML copied.");
+  }catch{
+    showToast("Copy failed.");
+  }
+};
+
+downloadBtn.onclick = ()=>{
+  const blob = new Blob([generateHTML()], {type:"text/html"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.download = "index.html";
+  a.href = url;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast("Downloaded index.html.");
+};
+
+/* =========================
+   PROJECT SAVE / LOAD
+========================= */
+function getProjectData(){
+  return JSON.parse(JSON.stringify(project));
+}
+
+function loadProjectData(data){
+  project = {
+    title:data.title || "My JERRY Page",
+    width:data.width || 960,
+    height:data.height || 540,
+    bgType:data.bgType || "cyber",
+    bgA:data.bgA || "#05070a",
+    bgB:data.bgB || "#002b33",
+    effects:data.effects || {
+      matrix:true,
+      bottomGlow:true,
+      scanlines:false,
+      particles:false
+    },
+    items:Array.isArray(data.items) ? data.items : []
+  };
+
+  selectedId = null;
+
+  pageTitle.value = project.title;
+  pageW.value = project.width;
+  pageH.value = project.height;
+  bgType.value = project.bgType;
+  bgA.value = project.bgA;
+  bgB.value = project.bgB;
+  effectMatrix.checked = !!project.effects.matrix;
+  effectBottomGlow.checked = !!project.effects.bottomGlow;
+  effectScanlines.checked = !!project.effects.scanlines;
+  effectParticles.checked = !!project.effects.particles;
+
+  render();
+}
+
+saveLocalBtn.onclick = ()=>{
+  localStorage.setItem("JERRY_PAGE_FORGE_v1", JSON.stringify(getProjectData()));
+  showToast("Saved locally.");
+};
+
+loadLocalBtn.onclick = ()=>{
+  const raw = localStorage.getItem("JERRY_PAGE_FORGE_v1");
+
+  if(!raw){
+    showToast("No local save found.");
+    return;
+  }
+
+  try{
+    loadProjectData(JSON.parse(raw));
+    showToast("Loaded.");
+  }catch(error){
+    console.error(error);
+    showToast("Load failed.");
+  }
+};
+
+exportProjectBtn.onclick = ()=>{
+  const blob = new Blob([JSON.stringify(getProjectData(), null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.download = "jerry-page-forge-project.json";
+  a.href = url;
+  a.click();
+  URL.revokeObjectURL(url);
+};
+
+importProjectBtn.onclick = ()=> projectInput.click();
+
+projectInput.addEventListener("change", event=>{
+  const file = event.target.files[0];
+  if(!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = ()=>{
+    try{
+      loadProjectData(JSON.parse(reader.result));
+      showToast("Project imported.");
+    }catch(error){
+      console.error(error);
+      showToast("Invalid project.");
+    }
+  };
+
+  reader.readAsText(file);
+});
+
+/* =========================
+   HELPERS / INIT
+========================= */
+function clamp(value,min,max){
+  return Math.max(min, Math.min(max, value));
+}
+
+function escapeHTML(text){
+  return String(text || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function escapeAttr(text){
+  return escapeHTML(text).replaceAll("`","&#096;");
+}
+
+function init(){
+  pageTitle.value = project.title;
+  pageW.value = project.width;
+  pageH.value = project.height;
+  bgType.value = project.bgType;
+  bgA.value = project.bgA;
+  bgB.value = project.bgB;
+  effectMatrix.checked = project.effects.matrix;
+  effectBottomGlow.checked = project.effects.bottomGlow;
+  effectScanlines.checked = project.effects.scanlines;
+  effectParticles.checked = project.effects.particles;
+
+  addItem("text");
+  selectedId = project.items[0].id;
+  render();
+  showToast("Page Forge ready.");
+}
+
+init();
+</script>
+</body>
+</html>
