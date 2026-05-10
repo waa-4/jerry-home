@@ -33,6 +33,14 @@ window.JERRY_PLUGINS = [
     description: "Easily create .html files is a visual way!",
     href: "./pageforge/" // you can point anywhere
   },
+
+    {
+    id: "changelog",
+    title: "Changelog",
+    icon: "❓",
+    description: "The Changelog.",
+    href: "./changelog/" // you can point anywhere
+  },
   
   {
   id: "jerry-clock",
