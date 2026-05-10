@@ -58,7 +58,7 @@ html,body{
 }
 
 .page{
-  width:min(1460px, calc(100% - 22px));
+  width:min(1500px, calc(100% - 22px));
   height:100vh;
   margin:0 auto;
   padding:12px 0;
@@ -116,7 +116,7 @@ html,body{
 .app{
   min-height:0;
   display:grid;
-  grid-template-columns:300px 1fr 350px;
+  grid-template-columns:310px 1fr 360px;
   gap:10px;
 }
 
@@ -245,7 +245,7 @@ textarea{
   border:1px solid var(--cyan);
   border-radius:16px;
   box-shadow:0 0 24px rgba(0,255,225,0.25);
-  transform-origin:center;
+  transform-origin:center center;
   user-select:none;
 }
 
@@ -253,6 +253,7 @@ textarea{
   position:absolute;
   cursor:grab;
   border:1px dashed transparent;
+  transform-origin:center center;
 }
 
 .previewItem.locked{
@@ -261,7 +262,7 @@ textarea{
 
 .previewItem.selected{
   border-color:#00ffe1;
-  box-shadow:0 0 14px rgba(0,255,225,0.55);
+  box-shadow:0 0 14px rgba(0,255,225,0.55) !important;
 }
 
 .previewText{
@@ -285,6 +286,62 @@ textarea{
   object-fit:cover;
   display:block;
 }
+
+.resizeHandle{
+  position:absolute;
+  width:12px;
+  height:12px;
+  background:#00ffe1;
+  border:2px solid #001b1a;
+  border-radius:50%;
+  z-index:9999;
+  box-shadow:0 0 10px rgba(0,255,225,0.9);
+}
+
+.resizeHandle.nw{left:-7px;top:-7px;cursor:nwse-resize}
+.resizeHandle.ne{right:-7px;top:-7px;cursor:nesw-resize}
+.resizeHandle.sw{left:-7px;bottom:-7px;cursor:nesw-resize}
+.resizeHandle.se{right:-7px;bottom:-7px;cursor:nwse-resize}
+.resizeHandle.n{left:50%;top:-7px;transform:translateX(-50%);cursor:ns-resize}
+.resizeHandle.s{left:50%;bottom:-7px;transform:translateX(-50%);cursor:ns-resize}
+.resizeHandle.w{left:-7px;top:50%;transform:translateY(-50%);cursor:ew-resize}
+.resizeHandle.e{right:-7px;top:50%;transform:translateY(-50%);cursor:ew-resize}
+
+.rotateHandle{
+  position:absolute;
+  left:50%;
+  top:-34px;
+  transform:translateX(-50%);
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  background:#ff4fd8;
+  border:2px solid #1b0015;
+  cursor:grab;
+  z-index:10000;
+  box-shadow:0 0 12px rgba(255,79,216,0.9);
+}
+
+.rotateHandle::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:16px;
+  width:1px;
+  height:18px;
+  background:#ff4fd8;
+}
+
+.snapLine{
+  position:absolute;
+  pointer-events:none;
+  z-index:9998;
+  background:#ff4fd8;
+  box-shadow:0 0 10px #ff4fd8;
+}
+
+.snapLine.v{width:1px;height:100%;top:0}
+.snapLine.h{height:1px;width:100%;left:0}
 
 .statusBar{
   display:grid;
@@ -339,13 +396,8 @@ textarea{
   margin-bottom:10px;
 }
 
-.advancedOnly{
-  display:none;
-}
-
-body.advanced .advancedOnly{
-  display:block;
-}
+.advancedOnly{display:none}
+body.advanced .advancedOnly{display:block}
 
 .quickActions{
   margin-top:10px;
@@ -394,7 +446,7 @@ body.advanced .advancedOnly{
   position:fixed;
   z-index:80;
   display:none;
-  width:210px;
+  width:230px;
   padding:8px;
   border-radius:14px;
   background:rgba(0,0,0,0.92);
@@ -437,9 +489,7 @@ body.advanced .advancedOnly{
 }
 
 @media(max-width:580px){
-  .row,
-  .toolGrid,
-  .tripleRow{grid-template-columns:1fr}
+  .row,.toolGrid,.tripleRow{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -466,7 +516,7 @@ body.advanced .advancedOnly{
   <header class="topbar">
     <div class="brand">
       <h1>⚒️ JERRY Page Forge</h1>
-      <span>visual HTML creator • v2.1 cleaner editing</span>
+      <span>visual HTML creator • v2.2 Canva-like editing</span>
     </div>
 
     <nav class="navLinks">
@@ -540,6 +590,12 @@ body.advanced .advancedOnly{
       <label><input id="effectScanlines" type="checkbox" style="width:auto;" /> Scanlines</label>
       <label><input id="effectParticles" type="checkbox" style="width:auto;" /> Particles</label>
 
+      <h2 style="margin-top:16px;">Snapping</h2>
+      <label><input id="snapToggle" type="checkbox" checked style="width:auto;" /> Snap to edges / center</label>
+      <label><input id="gridSnapToggle" type="checkbox" style="width:auto;" /> Snap to grid</label>
+      <label>Grid Snap Size</label>
+      <input id="gridSnapSize" type="number" min="4" max="100" value="20" />
+
       <h2 style="margin-top:16px;">Project</h2>
 
       <div class="row">
@@ -557,7 +613,7 @@ body.advanced .advancedOnly{
       <button id="clearAllBtn" style="margin-top:8px;">Clear All Elements</button>
 
       <p class="smallNote">
-        PC: right-click elements. Mobile: long-press or use Quick Actions.
+        Drag elements, use corner handles to resize, and use the pink handle to rotate. PC: right-click. Mobile: long-press or Quick Actions.
       </p>
     </aside>
 
@@ -715,7 +771,7 @@ body.advanced .advancedOnly{
 /* MATRIX BACKGROUND */
 const matrix = document.getElementById("matrix");
 const mctx = matrix.getContext("2d");
-const matrixChars = "01<>/=+-JERRYPAGEFORGEV21";
+const matrixChars = "01<>/=+-JERRYPAGEFORGEV22";
 const matrixSize = 16;
 let matrixDrops = [];
 
@@ -749,6 +805,7 @@ function drawMatrix(){
 setInterval(drawMatrix, 33);
 
 /* DOM */
+const previewShell = document.querySelector(".previewShell");
 const preview = document.getElementById("preview");
 const status = document.getElementById("status");
 const toast = document.getElementById("toast");
@@ -767,6 +824,9 @@ const effectMatrix = document.getElementById("effectMatrix");
 const effectBottomGlow = document.getElementById("effectBottomGlow");
 const effectScanlines = document.getElementById("effectScanlines");
 const effectParticles = document.getElementById("effectParticles");
+const snapToggle = document.getElementById("snapToggle");
+const gridSnapToggle = document.getElementById("gridSnapToggle");
+const gridSnapSize = document.getElementById("gridSnapSize");
 
 const addTextBtn = document.getElementById("addTextBtn");
 const addButtonBtn = document.getElementById("addButtonBtn");
@@ -865,15 +925,24 @@ let project = {
   bgA:"#05070a",
   bgB:"#002b33",
   effects:{ matrix:true, bottomGlow:true, scanlines:false, particles:false },
+  snap:true,
+  gridSnap:false,
+  gridSnapSize:20,
   items:[]
 };
 
 let selectedId = null;
-let zoom = 0.8;
+let zoom = 1;
+let manualZoom = 1;
 let dragging = false;
+let resizing = false;
+let rotating = false;
 let dragOffset = {x:0,y:0};
+let resizeState = null;
+let rotateState = null;
 let longPressTimer = null;
 let refreshingUI = false;
+let didDrag = false;
 
 let undoStack = [];
 let redoStack = [];
@@ -901,13 +970,10 @@ function snapshot(){
 
 function pushHistory(){
   syncProjectFromPageInputs();
-
   const snap = snapshot();
   if(snap === lastHistory) return;
-
   undoStack.push(snap);
-  if(undoStack.length > 80) undoStack.shift();
-
+  if(undoStack.length > 90) undoStack.shift();
   lastHistory = snap;
   redoStack = [];
   updateUndoRedoButtons();
@@ -923,10 +989,8 @@ function restoreSnapshot(snap){
 
 function undo(){
   if(undoStack.length <= 1) return;
-
   const current = undoStack.pop();
   redoStack.push(current);
-
   const previous = undoStack[undoStack.length - 1];
   lastHistory = previous;
   restoreSnapshot(previous);
@@ -936,7 +1000,6 @@ function undo(){
 
 function redo(){
   if(redoStack.length === 0) return;
-
   const next = redoStack.pop();
   undoStack.push(next);
   lastHistory = next;
@@ -953,7 +1016,7 @@ function updateUndoRedoButtons(){
 undoTopBtn.onclick = undo;
 redoTopBtn.onclick = redo;
 
-/* DEFAULT ITEMS */
+/* ITEMS */
 function defaultItem(type){
   const base = {
     id:newId(),
@@ -1030,7 +1093,6 @@ function defaultItem(type){
   return base;
 }
 
-/* ADD */
 function addItem(type){
   pushHistory();
   const item = defaultItem(type);
@@ -1045,15 +1107,12 @@ addTextBtn.onclick = () => addItem("text");
 addButtonBtn.onclick = () => addItem("button");
 addCardBtn.onclick = () => addItem("card");
 addBoxBtn.onclick = () => addItem("box");
-
 addImageBtn.onclick = () => imageInput.click();
 
 imageInput.addEventListener("change", event=>{
   const file = event.target.files[0];
   if(!file) return;
-
   const reader = new FileReader();
-
   reader.onload = ()=>{
     pushHistory();
     const item = defaultItem("image");
@@ -1067,14 +1126,12 @@ imageInput.addEventListener("change", event=>{
     pushHistory();
     showToast("Image added.");
   };
-
   reader.readAsDataURL(file);
 });
 
 /* TEMPLATES */
 function setTemplate(kind){
   if(project.items.length && !confirm("Replace current elements with this template?")) return;
-
   pushHistory();
   project.items = [];
   selectedId = null;
@@ -1086,45 +1143,35 @@ function setTemplate(kind){
   if(kind === "landing"){
     project.title = "JERRY Landing Page";
     pageTitle.value = project.title;
-
     const title = defaultItem("text");
     Object.assign(title, {text:"JERRY PROJECT", x:70, y:80, w:650, h:80, fontSize:56});
-
     const sub = defaultItem("card");
     Object.assign(sub, {text:"A glowing page made with Page Forge.\nEdit this text and make it yours.", x:80, y:190, w:520, h:150});
-
     const btn = defaultItem("button");
     Object.assign(btn, {text:"ENTER", x:80, y:380, w:180, h:62});
-
     project.items.push(title, sub, btn);
   }
 
   if(kind === "links"){
     project.title = "waa-4 Links";
     pageTitle.value = project.title;
-
     const title = defaultItem("text");
     Object.assign(title, {text:"waa-4 stuff", x:80, y:55, w:520, h:70, fontSize:48});
-
+    project.items.push(title);
     ["YouTube", "JERRY Tools", "because.blocks"].forEach((name,i)=>{
       const btn = defaultItem("button");
       Object.assign(btn, {text:name, x:100, y:160 + i * 85, w:270, h:60});
       project.items.push(btn);
     });
-
-    project.items.unshift(title);
   }
 
   if(kind === "arg"){
     project.title = "Signal Page";
     pageTitle.value = project.title;
-
     const title = defaultItem("text");
     Object.assign(title, {text:"SIGNAL FOUND", x:70, y:70, w:600, h:80, fontSize:52, color:"#ff4fd8"});
-
     const card = defaultItem("card");
     Object.assign(card, {text:"The page is watching.\nThe signal is not random.\nReturn when the sky turns cyan.", x:90, y:190, w:560, h:190, bg:"#08030d", color:"#eaffff"});
-
     project.items.push(title, card);
   }
 
@@ -1144,7 +1191,7 @@ templateClearBtn.onclick = () => {
   pushHistory();
 };
 
-/* RENDER */
+/* SYNC */
 function syncProjectFromPageInputs(){
   project.title = pageTitle.value;
   project.width = clamp(Number(pageW.value) || 960, 320, 2400);
@@ -1156,6 +1203,9 @@ function syncProjectFromPageInputs(){
   project.effects.bottomGlow = effectBottomGlow.checked;
   project.effects.scanlines = effectScanlines.checked;
   project.effects.particles = effectParticles.checked;
+  project.snap = snapToggle.checked;
+  project.gridSnap = gridSnapToggle.checked;
+  project.gridSnapSize = clamp(Number(gridSnapSize.value) || 20, 4, 100);
 }
 
 function syncInputsFromProject(){
@@ -1169,19 +1219,114 @@ function syncInputsFromProject(){
   effectBottomGlow.checked = !!project.effects.bottomGlow;
   effectScanlines.checked = !!project.effects.scanlines;
   effectParticles.checked = !!project.effects.particles;
+  snapToggle.checked = project.snap !== false;
+  gridSnapToggle.checked = !!project.gridSnap;
+  gridSnapSize.value = project.gridSnapSize || 20;
 }
 
+/* SCALING / CLAMPING */
+function clampItemInsidePage(item){
+  item.w = Math.max(10, Math.min(Number(item.w) || 10, project.width));
+  item.h = Math.max(10, Math.min(Number(item.h) || 10, project.height));
+  item.x = Math.max(0, Math.min(Number(item.x) || 0, project.width - item.w));
+  item.y = Math.max(0, Math.min(Number(item.y) || 0, project.height - item.h));
+}
+
+function clampAllItemsInsidePage(){
+  project.items.forEach(clampItemInsidePage);
+}
+
+function getAutoZoom(){
+  const rect = previewShell.getBoundingClientRect();
+  const pad = 44;
+  const availableW = Math.max(100, rect.width - pad);
+  const availableH = Math.max(100, rect.height - pad);
+  const scaleX = availableW / project.width;
+  const scaleY = availableH / project.height;
+  return clamp(Math.min(scaleX, scaleY, 1), 0.12, 1);
+}
+
+function updatePreviewScale(){
+  zoom = clamp(getAutoZoom() * manualZoom, 0.12, 2.4);
+  preview.style.transform = `scale(${zoom})`;
+}
+
+function snapValue(value, target, threshold = 7){
+  if(Math.abs(value - target) <= threshold) return target;
+  return value;
+}
+
+function applyGridSnap(value){
+  if(!project.gridSnap) return value;
+  const size = project.gridSnapSize || 20;
+  return Math.round(value / size) * size;
+}
+
+function snapItem(item){
+  clearSnapLines();
+  if(project.gridSnap){
+    item.x = applyGridSnap(item.x);
+    item.y = applyGridSnap(item.y);
+    item.w = Math.max(10, applyGridSnap(item.w));
+    item.h = Math.max(10, applyGridSnap(item.h));
+  }
+  if(project.snap === false) return;
+
+  const cx = item.x + item.w / 2;
+  const cy = item.y + item.h / 2;
+  const right = item.x + item.w;
+  const bottom = item.y + item.h;
+  const midX = project.width / 2;
+  const midY = project.height / 2;
+
+  const oldX = item.x;
+  const oldY = item.y;
+
+  item.x = snapValue(item.x, 0);
+  item.y = snapValue(item.y, 0);
+  item.x = snapValue(item.x, project.width - item.w);
+  item.y = snapValue(item.y, project.height - item.h);
+
+  const snappedCx = snapValue(cx, midX);
+  const snappedCy = snapValue(cy, midY);
+  if(snappedCx !== cx) item.x = Math.round(midX - item.w / 2);
+  if(snappedCy !== cy) item.y = Math.round(midY - item.h / 2);
+
+  if(item.x !== oldX){
+    if(item.x === 0 || item.x + item.w === project.width) showSnapLine("v", item.x === 0 ? 0 : project.width);
+    if(Math.round(item.x + item.w / 2) === Math.round(midX)) showSnapLine("v", midX);
+  }
+  if(item.y !== oldY){
+    if(item.y === 0 || item.y + item.h === project.height) showSnapLine("h", item.y === 0 ? 0 : project.height);
+    if(Math.round(item.y + item.h / 2) === Math.round(midY)) showSnapLine("h", midY);
+  }
+}
+
+function showSnapLine(kind, pos){
+  const line = document.createElement("div");
+  line.className = "snapLine " + kind;
+  if(kind === "v") line.style.left = pos + "px";
+  if(kind === "h") line.style.top = pos + "px";
+  preview.appendChild(line);
+}
+
+function clearSnapLines(){
+  preview.querySelectorAll(".snapLine").forEach(line => line.remove());
+}
+
+/* RENDER */
 function render(writeHistory = false){
   syncProjectFromPageInputs();
+  clampAllItemsInsidePage();
 
   preview.style.width = project.width + "px";
   preview.style.height = project.height + "px";
   preview.style.minWidth = project.width + "px";
   preview.style.minHeight = project.height + "px";
-  preview.style.transform = `scale(${zoom})`;
   preview.style.background = getPageBackground();
-  preview.innerHTML = "";
+  updatePreviewScale();
 
+  preview.innerHTML = "";
   if(project.effects.matrix) preview.appendChild(makePreviewMatrixLayer());
   if(project.effects.particles) preview.appendChild(makePreviewParticlesLayer());
   if(project.effects.bottomGlow) preview.appendChild(makePreviewBottomGlow());
@@ -1194,18 +1339,13 @@ function render(writeHistory = false){
   renderLayers();
   refreshSelectedUI();
   status.textContent = `Ready • ${project.width}×${project.height} • ${project.items.length} elements • Zoom ${zoom.toFixed(2)}x`;
-
   if(writeHistory) pushHistory();
 }
 
 function getPageBackground(){
   if(project.bgType === "solid") return project.bgA;
   if(project.bgType === "gradient") return `linear-gradient(135deg, ${project.bgA}, ${project.bgB})`;
-
-  return `
-    radial-gradient(circle at top, rgba(0,255,225,0.16), transparent 38%),
-    linear-gradient(135deg, ${project.bgA}, ${project.bgB})
-  `;
+  return `radial-gradient(circle at top, rgba(0,255,225,0.16), transparent 38%), linear-gradient(135deg, ${project.bgA}, ${project.bgB})`;
 }
 
 function makePreviewMatrixLayer(){
@@ -1214,8 +1354,7 @@ function makePreviewMatrixLayer(){
   div.style.inset = "0";
   div.style.opacity = "0.18";
   div.style.pointerEvents = "none";
-  div.style.backgroundImage =
-    "linear-gradient(rgba(0,255,225,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,225,0.12) 1px, transparent 1px)";
+  div.style.backgroundImage = "linear-gradient(rgba(0,255,225,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,225,0.12) 1px, transparent 1px)";
   div.style.backgroundSize = "34px 34px";
   return div;
 }
@@ -1225,8 +1364,7 @@ function makePreviewParticlesLayer(){
   div.style.position = "absolute";
   div.style.inset = "0";
   div.style.pointerEvents = "none";
-  div.style.background =
-    "radial-gradient(circle at 20% 30%, rgba(0,255,225,0.45) 0 2px, transparent 3px), radial-gradient(circle at 70% 60%, rgba(0,255,225,0.28) 0 2px, transparent 3px), radial-gradient(circle at 40% 80%, rgba(255,79,216,0.35) 0 2px, transparent 3px)";
+  div.style.background = "radial-gradient(circle at 20% 30%, rgba(0,255,225,0.45) 0 2px, transparent 3px), radial-gradient(circle at 70% 60%, rgba(0,255,225,0.28) 0 2px, transparent 3px), radial-gradient(circle at 40% 80%, rgba(255,79,216,0.35) 0 2px, transparent 3px)";
   return div;
 }
 
@@ -1283,7 +1421,6 @@ function applyItemStyles(el,item){
 
 function makeItemElement(item){
   let el;
-
   if(item.type === "button"){
     el = document.createElement("a");
     el.className = "previewItem previewButton";
@@ -1301,30 +1438,21 @@ function makeItemElement(item){
   el.dataset.id = item.id;
   el.classList.toggle("selected", item.id === selectedId);
   el.classList.toggle("locked", !!item.locked);
-
   applyItemStyles(el,item);
-
-  if(item.type !== "image"){
-    el.textContent = item.text;
-  }
+  if(item.type !== "image") el.textContent = item.text;
 
   el.addEventListener("pointerdown", event=>{
+    if(event.target.classList.contains("resizeHandle") || event.target.classList.contains("rotateHandle")) return;
     event.preventDefault();
     hideContextMenu();
     selectedId = item.id;
-
+    didDrag = false;
     clearTimeout(longPressTimer);
-    longPressTimer = setTimeout(()=>{
-      showContextMenu(event.clientX,event.clientY);
-    }, 620);
+    longPressTimer = setTimeout(()=>showContextMenu(event.clientX,event.clientY),620);
 
-    if(item.locked){
-      render();
-      return;
-    }
+    if(item.locked){ render(); return; }
 
     pushHistory();
-
     const p = previewPoint(event);
     dragging = true;
     dragOffset.x = p.x - item.x;
@@ -1336,21 +1464,25 @@ function makeItemElement(item){
   el.addEventListener("pointermove", event=>{
     clearTimeout(longPressTimer);
     if(!dragging || selectedId !== item.id || item.locked) return;
-
     const p = previewPoint(event);
     item.x = Math.round(p.x - dragOffset.x);
     item.y = Math.round(p.y - dragOffset.y);
+    snapItem(item);
+    clampItemInsidePage(item);
+    didDrag = true;
     render();
   });
 
   el.addEventListener("pointerup", ()=>{
     clearTimeout(longPressTimer);
-    if(dragging) pushHistory();
+    clearSnapLines();
+    if(dragging && didDrag) pushHistory();
     dragging = false;
   });
 
   el.addEventListener("pointercancel", ()=>{
     clearTimeout(longPressTimer);
+    clearSnapLines();
     dragging = false;
   });
 
@@ -1361,7 +1493,111 @@ function makeItemElement(item){
     render();
   });
 
+  if(item.id === selectedId && !item.locked){
+    addHandles(el,item);
+  }
+
   return el;
+}
+
+function addHandles(el,item){
+  ["nw","n","ne","e","se","s","sw","w"].forEach(pos=>{
+    const handle = document.createElement("div");
+    handle.className = "resizeHandle " + pos;
+    handle.addEventListener("pointerdown", event=>{
+      event.preventDefault();
+      event.stopPropagation();
+      hideContextMenu();
+      pushHistory();
+      resizing = true;
+      const p = previewPoint(event);
+      resizeState = {
+        pos,
+        startX:p.x,
+        startY:p.y,
+        x:item.x,
+        y:item.y,
+        w:item.w,
+        h:item.h
+      };
+      handle.setPointerCapture(event.pointerId);
+    });
+    handle.addEventListener("pointermove", event=>{
+      if(!resizing || !resizeState || selectedId !== item.id) return;
+      const p = previewPoint(event);
+      resizeItemFromHandle(item,p);
+      render();
+    });
+    handle.addEventListener("pointerup", ()=>{
+      if(resizing) pushHistory();
+      resizing = false;
+      resizeState = null;
+      clearSnapLines();
+    });
+    el.appendChild(handle);
+  });
+
+  const rotate = document.createElement("div");
+  rotate.className = "rotateHandle";
+  rotate.addEventListener("pointerdown", event=>{
+    event.preventDefault();
+    event.stopPropagation();
+    pushHistory();
+    rotating = true;
+    const center = {x:item.x + item.w/2, y:item.y + item.h/2};
+    const p = previewPoint(event);
+    rotateState = {
+      center,
+      startAngle:Math.atan2(p.y-center.y,p.x-center.x),
+      original:item.rotation || 0
+    };
+    rotate.setPointerCapture(event.pointerId);
+  });
+  rotate.addEventListener("pointermove", event=>{
+    if(!rotating || !rotateState || selectedId !== item.id) return;
+    const p = previewPoint(event);
+    const angle = Math.atan2(p.y-rotateState.center.y,p.x-rotateState.center.x);
+    item.rotation = Math.round(rotateState.original + (angle - rotateState.startAngle) * 180 / Math.PI);
+    render();
+  });
+  rotate.addEventListener("pointerup", ()=>{
+    if(rotating) pushHistory();
+    rotating = false;
+    rotateState = null;
+  });
+  el.appendChild(rotate);
+}
+
+function resizeItemFromHandle(item,p){
+  const s = resizeState;
+  let x = s.x;
+  let y = s.y;
+  let w = s.w;
+  let h = s.h;
+  const dx = p.x - s.startX;
+  const dy = p.y - s.startY;
+  const pos = s.pos;
+
+  if(pos.includes("e")) w = s.w + dx;
+  if(pos.includes("s")) h = s.h + dy;
+  if(pos.includes("w")){ x = s.x + dx; w = s.w - dx; }
+  if(pos.includes("n")){ y = s.y + dy; h = s.h - dy; }
+
+  w = Math.max(10, w);
+  h = Math.max(10, h);
+
+  if(project.gridSnap){
+    x = applyGridSnap(x);
+    y = applyGridSnap(y);
+    w = Math.max(10, applyGridSnap(w));
+    h = Math.max(10, applyGridSnap(h));
+  }
+
+  item.x = Math.round(x);
+  item.y = Math.round(y);
+  item.w = Math.round(w);
+  item.h = Math.round(h);
+  clampItemInsidePage(item);
 }
 
 function previewPoint(event){
@@ -1375,18 +1611,14 @@ function previewPoint(event){
 /* SELECTED UI */
 function refreshSelectedUI(){
   const item = selectedItem();
-
   if(!item){
     noSelection.style.display = "block";
     selectedPanel.style.display = "none";
     return;
   }
-
   refreshingUI = true;
-
   noSelection.style.display = "none";
   selectedPanel.style.display = "block";
-
   elName.value = item.name || "";
   elText.value = item.text || "";
   elHref.value = item.href || "";
@@ -1407,7 +1639,6 @@ function refreshSelectedUI(){
   elRadius.value = item.radius || 0;
   elGlow.value = item.glow || 0;
   elOpacity.value = Math.round((item.opacity ?? 1) * 100);
-
   fontRead.textContent = elFontSize.value;
   paddingRead.textContent = elPadding.value;
   borderRead.textContent = elBorder.value;
@@ -1415,18 +1646,14 @@ function refreshSelectedUI(){
   radiusRead.textContent = elRadius.value;
   glowRead.textContent = elGlow.value;
   opacityRead.textContent = elOpacity.value;
-
   lockBtn.textContent = item.locked ? "Unlock Element" : "Lock Element";
-
   refreshingUI = false;
 }
 
 function updateSelectedFromUI(){
   if(refreshingUI) return;
-
   const item = selectedItem();
   if(!item) return;
-
   item.name = elName.value || item.name;
   item.text = elText.value;
   item.href = elHref.value;
@@ -1447,17 +1674,11 @@ function updateSelectedFromUI(){
   item.radius = Number(elRadius.value) || 0;
   item.glow = Number(elGlow.value) || 0;
   item.opacity = Number(elOpacity.value) / 100;
-
+  clampItemInsidePage(item);
   render();
 }
 
-const editInputs = [
-  elName, elText, elHref, elX, elY, elW, elH,
-  elBg, elColor, elFontSize, elAlign, elWeight,
-  elPadding, elBorder, elBorderColor, elRotation,
-  elCustomCss, elRadius, elGlow, elOpacity
-];
-
+const editInputs = [elName,elText,elHref,elX,elY,elW,elH,elBg,elColor,elFontSize,elAlign,elWeight,elPadding,elBorder,elBorderColor,elRotation,elCustomCss,elRadius,elGlow,elOpacity];
 editInputs.forEach(input=>{
   input.addEventListener("focus", pushHistory);
   input.addEventListener("input", updateSelectedFromUI);
@@ -1468,18 +1689,9 @@ editInputs.forEach(input=>{
 function duplicateSelected(){
   const item = selectedItem();
   if(!item) return;
-
   pushHistory();
-
-  const copy = {
-    ...JSON.parse(JSON.stringify(item)),
-    id:newId(),
-    name:(item.name || "Element") + " Copy",
-    x:item.x + 30,
-    y:item.y + 30,
-    locked:false
-  };
-
+  const copy = {...JSON.parse(JSON.stringify(item)), id:newId(), name:(item.name || "Element") + " Copy", x:item.x + 30, y:item.y + 30, locked:false};
+  clampItemInsidePage(copy);
   project.items.push(copy);
   selectedId = copy.id;
   render();
@@ -1488,7 +1700,6 @@ function duplicateSelected(){
 
 function deleteSelected(){
   if(!selectedId) return;
-
   pushHistory();
   project.items = project.items.filter(item => item.id !== selectedId);
   selectedId = null;
@@ -1500,17 +1711,9 @@ function deleteSelected(){
 function moveLayer(dir){
   const i = project.items.findIndex(item => item.id === selectedId);
   if(i < 0) return;
-
   pushHistory();
-
-  if(dir > 0 && i < project.items.length - 1){
-    [project.items[i], project.items[i + 1]] = [project.items[i + 1], project.items[i]];
-  }
-
-  if(dir < 0 && i > 0){
-    [project.items[i], project.items[i - 1]] = [project.items[i - 1], project.items[i]];
-  }
-
+  if(dir > 0 && i < project.items.length - 1) [project.items[i], project.items[i + 1]] = [project.items[i + 1], project.items[i]];
+  if(dir < 0 && i > 0) [project.items[i], project.items[i - 1]] = [project.items[i - 1], project.items[i]];
   render();
   pushHistory();
 }
@@ -1527,10 +1730,10 @@ function toggleLock(){
 function centerSelected(){
   const item = selectedItem();
   if(!item) return;
-
   pushHistory();
   item.x = Math.round((project.width - item.w) / 2);
   item.y = Math.round((project.height - item.h) / 2);
+  clampItemInsidePage(item);
   render();
   pushHistory();
 }
@@ -1538,18 +1741,15 @@ function centerSelected(){
 function scaleSelected(multiplier){
   const item = selectedItem();
   if(!item) return;
-
   pushHistory();
-  const centerX = item.x + item.w / 2;
-  const centerY = item.y + item.h / 2;
-
+  const cx = item.x + item.w / 2;
+  const cy = item.y + item.h / 2;
   item.w = Math.max(10, Math.round(item.w * multiplier));
   item.h = Math.max(10, Math.round(item.h * multiplier));
   item.fontSize = Math.max(8, Math.round(item.fontSize * multiplier));
-
-  item.x = Math.round(centerX - item.w / 2);
-  item.y = Math.round(centerY - item.h / 2);
-
+  item.x = Math.round(cx - item.w / 2);
+  item.y = Math.round(cy - item.h / 2);
+  clampItemInsidePage(item);
   render();
   pushHistory();
 }
@@ -1557,12 +1757,15 @@ function scaleSelected(multiplier){
 function fitSelectedToPage(){
   const item = selectedItem();
   if(!item) return;
-
   pushHistory();
-  item.x = Math.round(project.width * 0.08);
-  item.y = Math.round(project.height * 0.12);
-  item.w = Math.round(project.width * 0.84);
-  item.h = Math.round(project.height * 0.68);
+  const marginX = Math.round(project.width * 0.08);
+  const marginY = Math.round(project.height * 0.08);
+  item.x = marginX;
+  item.y = marginY;
+  item.w = Math.max(10, project.width - marginX * 2);
+  item.h = Math.max(10, project.height - marginY * 2);
+  if(item.type !== "image") item.fontSize = Math.min(item.fontSize, Math.max(16, Math.round(item.h * 0.18)));
+  clampItemInsidePage(item);
   render();
   pushHistory();
 }
@@ -1576,7 +1779,6 @@ lockBtn.onclick = toggleLock;
 fitBtn.onclick = fitSelectedToPage;
 forwardBtn.onclick = () => moveLayer(1);
 backwardBtn.onclick = () => moveLayer(-1);
-
 quickOptionsBtn.onclick = ()=>{
   const rect = quickOptionsBtn.getBoundingClientRect();
   showContextMenu(rect.left, rect.bottom + 6);
@@ -1584,37 +1786,28 @@ quickOptionsBtn.onclick = ()=>{
 
 function renderLayers(){
   layerList.innerHTML = "";
-
   if(project.items.length === 0){
     layerList.innerHTML = `<div class="smallNote">No elements yet.</div>`;
     return;
   }
-
   [...project.items].reverse().forEach(item=>{
     const div = document.createElement("div");
     div.className = "layerItem";
     div.classList.toggle("active", item.id === selectedId);
     div.textContent = `${item.locked ? "🔒 " : ""}${item.type.toUpperCase()} • ${item.name || "Element"}`;
-
-    div.onclick = ()=>{
-      selectedId = item.id;
-      render();
-    };
-
+    div.onclick = ()=>{ selectedId = item.id; render(); };
     layerList.appendChild(div);
   });
 }
 
 /* CONTEXT MENU */
 function showContextMenu(x,y){
-  contextMenu.style.left = Math.min(x, innerWidth - 230) + "px";
-  contextMenu.style.top = Math.min(y, innerHeight - 330) + "px";
+  contextMenu.style.left = Math.min(x, innerWidth - 250) + "px";
+  contextMenu.style.top = Math.min(y, innerHeight - 360) + "px";
   contextMenu.style.display = "block";
 }
 
-function hideContextMenu(){
-  contextMenu.style.display = "none";
-}
+function hideContextMenu(){ contextMenu.style.display = "none"; }
 
 document.addEventListener("click", event=>{
   if(!contextMenu.contains(event.target)) hideContextMenu();
@@ -1630,11 +1823,7 @@ ctxForward.onclick = () => { moveLayer(1); hideContextMenu(); };
 ctxBackward.onclick = () => { moveLayer(-1); hideContextMenu(); };
 
 /* PAGE SETTINGS */
-const pageInputs = [
-  pageTitle, bgType, bgA, bgB,
-  effectMatrix, effectBottomGlow, effectScanlines, effectParticles
-];
-
+const pageInputs = [pageTitle,bgType,bgA,bgB,effectMatrix,effectBottomGlow,effectScanlines,effectParticles,snapToggle,gridSnapToggle,gridSnapSize];
 pageInputs.forEach(input=>{
   input.addEventListener("focus", pushHistory);
   input.addEventListener("input", ()=>render());
@@ -1645,19 +1834,13 @@ applyPageSizeBtn.onclick = ()=>{
   pushHistory();
   project.width = clamp(Number(pageW.value) || 960, 320, 2400);
   project.height = clamp(Number(pageH.value) || 540, 240, 1600);
+  clampAllItemsInsidePage();
   render();
   pushHistory();
 };
 
-zoomInBtn.onclick = ()=>{
-  zoom = clamp(zoom * 1.12, 0.2, 2);
-  render();
-};
-
-zoomOutBtn.onclick = ()=>{
-  zoom = clamp(zoom * 0.88, 0.2, 2);
-  render();
-};
+zoomInBtn.onclick = ()=>{ manualZoom = clamp(manualZoom * 1.1, 0.5, 2.4); render(); };
+zoomOutBtn.onclick = ()=>{ manualZoom = clamp(manualZoom * 0.9, 0.5, 2.4); render(); };
 
 clearAllBtn.onclick = ()=>{
   if(!confirm("Clear all elements?")) return;
@@ -1682,8 +1865,7 @@ advancedModeBtn.onclick = ()=>{
 
 /* EXPORT HTML */
 function generateHTML(){
-  const cssItems = project.items.map((item,index)=>{
-    return `.item${index}{
+  const cssItems = project.items.map((item,index)=>`.item${index}{
   position:absolute;
   left:${item.x}px;
   top:${item.y}px;
@@ -1703,18 +1885,11 @@ function generateHTML(){
   overflow:hidden;
   white-space:pre-wrap;
   ${item.customCss || ""}
-}`;
-  }).join("\n\n");
+}`).join("\n\n");
 
   const htmlItems = project.items.map((item,index)=>{
-    if(item.type === "image"){
-      return `<img class="item${index}" src="${item.dataUrl}" alt="${escapeAttr(item.name)}">`;
-    }
-
-    if(item.type === "button"){
-      return `<a class="item${index} button" href="${escapeAttr(item.href || "#")}">${escapeHTML(item.text)}</a>`;
-    }
-
+    if(item.type === "image") return `<img class="item${index}" src="${item.dataUrl}" alt="${escapeAttr(item.name)}">`;
+    if(item.type === "button") return `<a class="item${index} button" href="${escapeAttr(item.href || "#")}">${escapeHTML(item.text)}</a>`;
     return `<div class="item${index}">${escapeHTML(item.text)}</div>`;
   }).join("\n    ");
 
@@ -1735,16 +1910,7 @@ ${project.effects.particles ? `.particles{position:absolute;inset:0;pointer-even
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:#000;color:#eaffff;font-family:monospace}
 body{display:flex;align-items:center;justify-content:center;padding:20px}
-.page{
-  position:relative;
-  width:${project.width}px;
-  height:${project.height}px;
-  overflow:hidden;
-  background:${getPageBackground()};
-  border:1px solid #00ffe1;
-  border-radius:16px;
-  box-shadow:0 0 24px rgba(0,255,225,.25);
-}
+.page{position:relative;width:${project.width}px;height:${project.height}px;overflow:hidden;background:${getPageBackground()};border:1px solid #00ffe1;border-radius:16px;box-shadow:0 0 24px rgba(0,255,225,.25)}
 .button{display:flex;align-items:center;justify-content:center;text-decoration:none}
 ${effectCSS}
 ${cssItems}
@@ -1766,20 +1932,11 @@ showCodeBtn.onclick = ()=>{
   codeOutput.value = generateHTML();
   codeModal.style.display = "flex";
 };
-
-closeCodeBtn.onclick = ()=>{
-  codeModal.style.display = "none";
-};
-
+closeCodeBtn.onclick = ()=>{ codeModal.style.display = "none"; };
 copyCodeBtn.onclick = async ()=>{
-  try{
-    await navigator.clipboard.writeText(codeOutput.value);
-    showToast("HTML copied.");
-  }catch{
-    showToast("Copy failed.");
-  }
+  try{ await navigator.clipboard.writeText(codeOutput.value); showToast("HTML copied."); }
+  catch{ showToast("Copy failed."); }
 };
-
 downloadBtn.onclick = ()=>{
   const blob = new Blob([generateHTML()], {type:"text/html"});
   const url = URL.createObjectURL(blob);
@@ -1792,11 +1949,7 @@ downloadBtn.onclick = ()=>{
 };
 
 /* SAVE / LOAD */
-function getProjectData(){
-  syncProjectFromPageInputs();
-  return JSON.parse(JSON.stringify(project));
-}
-
+function getProjectData(){ syncProjectFromPageInputs(); return JSON.parse(JSON.stringify(project)); }
 function loadProjectData(data){
   project = {
     title:data.title || "My JERRY Page",
@@ -1806,48 +1959,24 @@ function loadProjectData(data){
     bgA:data.bgA || "#05070a",
     bgB:data.bgB || "#002b33",
     effects:data.effects || { matrix:true, bottomGlow:true, scanlines:false, particles:false },
+    snap:data.snap !== false,
+    gridSnap:!!data.gridSnap,
+    gridSnapSize:data.gridSnapSize || 20,
     items:Array.isArray(data.items) ? data.items.map(normalizeItem) : []
   };
-
   selectedId = null;
   syncInputsFromProject();
   render();
   pushHistory();
 }
-
-function normalizeItem(item){
-  return {
-    ...defaultItem(item.type || "text"),
-    ...item
-  };
-}
-
-saveLocalBtn.onclick = ()=>{
-  localStorage.setItem("JERRY_PAGE_FORGE_v21", JSON.stringify(getProjectData()));
-  showToast("Saved locally.");
-};
-
+function normalizeItem(item){ return {...defaultItem(item.type || "text"), ...item}; }
+saveLocalBtn.onclick = ()=>{ localStorage.setItem("JERRY_PAGE_FORGE_v22", JSON.stringify(getProjectData())); showToast("Saved locally."); };
 loadLocalBtn.onclick = ()=>{
-  const raw =
-    localStorage.getItem("JERRY_PAGE_FORGE_v21") ||
-    localStorage.getItem("JERRY_PAGE_FORGE_v2") ||
-    localStorage.getItem("JERRY_PAGE_FORGE_v1");
-
-  if(!raw){
-    showToast("No local save found.");
-    return;
-  }
-
-  try{
-    pushHistory();
-    loadProjectData(JSON.parse(raw));
-    showToast("Loaded.");
-  }catch(error){
-    console.error(error);
-    showToast("Load failed.");
-  }
+  const raw = localStorage.getItem("JERRY_PAGE_FORGE_v22") || localStorage.getItem("JERRY_PAGE_FORGE_v21") || localStorage.getItem("JERRY_PAGE_FORGE_v2") || localStorage.getItem("JERRY_PAGE_FORGE_v1");
+  if(!raw){ showToast("No local save found."); return; }
+  try{ pushHistory(); loadProjectData(JSON.parse(raw)); showToast("Loaded."); }
+  catch(error){ console.error(error); showToast("Load failed."); }
 };
-
 exportProjectBtn.onclick = ()=>{
   const blob = new Blob([JSON.stringify(getProjectData(), null, 2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);
@@ -1857,26 +1986,15 @@ exportProjectBtn.onclick = ()=>{
   a.click();
   URL.revokeObjectURL(url);
 };
-
 importProjectBtn.onclick = ()=> projectInput.click();
-
 projectInput.addEventListener("change", event=>{
   const file = event.target.files[0];
   if(!file) return;
-
   const reader = new FileReader();
-
   reader.onload = ()=>{
-    try{
-      pushHistory();
-      loadProjectData(JSON.parse(reader.result));
-      showToast("Project imported.");
-    }catch(error){
-      console.error(error);
-      showToast("Invalid project.");
-    }
+    try{ pushHistory(); loadProjectData(JSON.parse(reader.result)); showToast("Project imported."); }
+    catch(error){ console.error(error); showToast("Invalid project."); }
   };
-
   reader.readAsText(file);
 });
 
@@ -1884,45 +2002,20 @@ projectInput.addEventListener("change", event=>{
 document.addEventListener("keydown", event=>{
   const tag = document.activeElement.tagName.toLowerCase();
   if(tag === "input" || tag === "textarea" || tag === "select") return;
-
-  if(event.key === "Delete" || event.key === "Backspace"){
-    deleteSelected();
-  }
-
-  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d"){
-    event.preventDefault();
-    duplicateSelected();
-  }
-
-  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z"){
-    event.preventDefault();
-    undo();
-  }
-
-  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y"){
-    event.preventDefault();
-    redo();
-  }
+  if(event.key === "Delete" || event.key === "Backspace") deleteSelected();
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "d"){ event.preventDefault(); duplicateSelected(); }
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z"){ event.preventDefault(); undo(); }
+  if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y"){ event.preventDefault(); redo(); }
 });
 
+window.addEventListener("resize", ()=>render());
+
 /* HELPERS */
-function clamp(value,min,max){
-  return Math.max(min, Math.min(max, value));
-}
-
+function clamp(value,min,max){ return Math.max(min, Math.min(max, value)); }
 function escapeHTML(text){
-  return String(text || "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
+  return String(text || "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
-
-function escapeAttr(text){
-  return escapeHTML(text).replaceAll("`","&#096;");
-}
-
+function escapeAttr(text){ return escapeHTML(text).replaceAll("`","&#096;"); }
 function hexToRgba(hex, alpha){
   const clean = String(hex || "#ffffff").replace("#","");
   const r = parseInt(clean.substring(0,2),16) || 255;
@@ -1933,7 +2026,6 @@ function hexToRgba(hex, alpha){
 
 function init(){
   syncInputsFromProject();
-
   const starter = defaultItem("text");
   starter.text = "JERRY PAGE FORGE";
   starter.x = 80;
@@ -1941,13 +2033,11 @@ function init(){
   starter.w = 620;
   starter.h = 80;
   starter.fontSize = 48;
-
   project.items.push(starter);
   selectedId = starter.id;
-
   render();
   pushHistory();
-  showToast("Page Forge v2.1 ready.");
+  showToast("Page Forge v2.2 ready.");
 }
 
 init();
