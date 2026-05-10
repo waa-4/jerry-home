@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>⚒️ JERRY Page Forge</title>
+<title>⚒️ JERRY Page Forge v2.3</title>
 
 <style>
 :root{
@@ -71,15 +71,19 @@ html,body{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap:12px;
+  gap:8px;
   flex-wrap:wrap;
+  padding:6px 8px;
+  border:1px solid rgba(0,255,225,0.18);
+  border-radius:18px;
+  background:rgba(0,0,0,0.32);
 }
 
 .brand h1{
   margin:0;
-  font-size:clamp(24px,4vw,42px);
+  font-size:clamp(19px,3vw,32px);
   color:var(--cyan);
-  text-shadow:0 0 24px var(--cyanGlow);
+  text-shadow:0 0 18px var(--cyanGlow);
 }
 
 .brand span{
@@ -99,10 +103,11 @@ html,body{
   text-decoration:none;
   border:1px solid var(--stroke);
   background:rgba(0,0,0,0.5);
-  padding:9px 12px;
+  padding:7px 10px;
   border-radius:999px;
   transition:0.18s;
   font-family:var(--mono);
+  font-size:12px;
   cursor:pointer;
 }
 
@@ -232,6 +237,16 @@ textarea{
   border:1px solid var(--stroke);
   border-radius:var(--radius);
   box-shadow:0 0 24px rgba(0,255,225,0.14);
+}
+
+#previewScale{
+  position:relative;
+  width:960px;
+  height:540px;
+  flex:0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
 #preview{
@@ -516,7 +531,7 @@ body.advanced .advancedOnly{display:block}
   <header class="topbar">
     <div class="brand">
       <h1>⚒️ JERRY Page Forge</h1>
-      <span>visual HTML creator • v2.2 Canva-like editing</span>
+      <span>visual HTML creator • v2.3 compact + fixed scaling</span>
     </div>
 
     <nav class="navLinks">
@@ -619,7 +634,9 @@ body.advanced .advancedOnly{display:block}
 
     <section class="stage">
       <div class="previewShell">
-        <div id="preview"></div>
+        <div id="previewScale">
+          <div id="preview"></div>
+        </div>
       </div>
 
       <div class="statusBar">
@@ -646,10 +663,11 @@ body.advanced .advancedOnly{display:block}
         <div class="quickActions">
           <h3>Quick Actions</h3>
           <div class="tripleRow">
+            <button id="quickEditTextBtn">Edit Text</button>
             <button id="quickDeleteBtn">Delete</button>
             <button id="quickCloneBtn">Clone</button>
-            <button id="quickOptionsBtn">Options</button>
           </div>
+          <button id="quickOptionsBtn" style="margin-top:8px;">More Options</button>
 
           <div class="tripleRow" style="margin-top:8px;">
             <button id="quickCenterBtn">Center</button>
@@ -666,8 +684,8 @@ body.advanced .advancedOnly{display:block}
         <label>Name</label>
         <input id="elName" />
 
-        <label>Text / HTML</label>
-        <textarea id="elText"></textarea>
+        <label>Edit Text Here</label>
+        <textarea id="elText" placeholder="Select a text, card, or button element, then type here."></textarea>
 
         <label>Link URL</label>
         <input id="elHref" placeholder="https://example.com" />
@@ -806,6 +824,7 @@ setInterval(drawMatrix, 33);
 
 /* DOM */
 const previewShell = document.querySelector(".previewShell");
+const previewScale = document.getElementById("previewScale");
 const preview = document.getElementById("preview");
 const status = document.getElementById("status");
 const toast = document.getElementById("toast");
@@ -876,6 +895,7 @@ const radiusRead = document.getElementById("radiusRead");
 const glowRead = document.getElementById("glowRead");
 const opacityRead = document.getElementById("opacityRead");
 
+const quickEditTextBtn = document.getElementById("quickEditTextBtn");
 const quickDeleteBtn = document.getElementById("quickDeleteBtn");
 const quickCloneBtn = document.getElementById("quickCloneBtn");
 const quickOptionsBtn = document.getElementById("quickOptionsBtn");
@@ -1248,6 +1268,12 @@ function getAutoZoom(){
 
 function updatePreviewScale(){
   zoom = clamp(getAutoZoom() * manualZoom, 0.12, 2.4);
+  previewScale.style.width = Math.ceil(project.width * zoom) + "px";
+  previewScale.style.height = Math.ceil(project.height * zoom) + "px";
+  preview.style.position = "absolute";
+  preview.style.left = "0";
+  preview.style.top = "0";
+  preview.style.transformOrigin = "top left";
   preview.style.transform = `scale(${zoom})`;
 }
 
@@ -1484,6 +1510,17 @@ function makeItemElement(item){
     clearTimeout(longPressTimer);
     clearSnapLines();
     dragging = false;
+  });
+
+  el.addEventListener("dblclick", event=>{
+    event.preventDefault();
+    selectedId = item.id;
+    render();
+    if(item.type !== "image"){
+      elText.focus();
+      elText.select();
+      showToast("Editing text in the right panel.");
+    }
   });
 
   el.addEventListener("contextmenu", event=>{
@@ -1770,6 +1807,13 @@ function fitSelectedToPage(){
   pushHistory();
 }
 
+quickEditTextBtn.onclick = ()=>{
+  const item = selectedItem();
+  if(!item) return;
+  elText.focus();
+  elText.select();
+  showToast("Type in the Edit Text box, then it updates live.");
+};
 quickDeleteBtn.onclick = deleteSelected;
 quickCloneBtn.onclick = duplicateSelected;
 quickCenterBtn.onclick = centerSelected;
@@ -2037,10 +2081,11 @@ function init(){
   selectedId = starter.id;
   render();
   pushHistory();
-  showToast("Page Forge v2.2 ready.");
+  showToast("Page Forge v2.3 ready.");
 }
 
 init();
 </script>
 </body>
 </html>
+
